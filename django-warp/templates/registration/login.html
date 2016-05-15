@@ -1,0 +1,33 @@
+{% extends "warp_base.html" %}
+
+{% block titolo %}LOGIN{% endblock %}
+
+{% block content %}
+
+<div class="container"> 
+    <div class="row-fluid">
+        <div class="col-md-12">
+            {% if form.errors %}
+            <div class="alert alert-danger">
+              <strong>Your username and password didn't match. Please try again.</strong>
+            </div>
+            {% endif %}
+            <form method="post" action="{% url 'django.contrib.auth.views.login' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="id_username">{{ form.username.label_tag }}</label>
+                    <input type="text" class="form-control" id="id_username" name="username" value="">
+                </div>
+                <div class="form-group">
+                    <label for="id_password">{{ form.password.label_tag }}</label>
+                    <input type="password" class="form-control" id="id_password" name="password" value="">
+                </div>
+                <input type="submit" value="login"  class="btn btn-default"/>
+                <input type="hidden" name="next" value="{{ next }}" />
+                
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

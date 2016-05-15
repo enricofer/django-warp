@@ -1,0 +1,9 @@
+*.pyc
+db.sqlite3
+manage.py
+warp_test/*
+warp_test/
+django-warp/bak/
+django-warp/migrations/
+django-warp/__pycache__/
+django-warp/templates/bak/

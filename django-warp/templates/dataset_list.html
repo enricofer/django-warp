@@ -1,0 +1,57 @@
+{% extends 'warp_base.html' %}
+{% load staticfiles %}
+{% comment %} {% endcomment %}
+
+{% block custom_style_link %}{% endblock %}
+{% block custom_style_inline %}{% endblock %}
+{% block custom_js %}
+<script type="text/javascript">
+$(document).ready(function() {
+    $("tr").click(function(event) {
+        window.location = "/warp/{{dataset.pk}}/"+event.target.parentElement.id+"/";
+    });
+    
+    $("#new").click(function(event) {
+        window.location = "/warp/{{dataset.pk}}/newimage/"
+    });
+});
+</script>
+{% endblock %}
+{% block onload %}{% endblock %}
+{% block titolo %}DATASET {{dataset.name}}{% endblock %}
+{% block menu %}{% endblock %}
+{% block contenuto %}
+
+
+<div class="container"> 
+    <div class="col-md-12">
+            <a type="button" class="btn btn-default" id="new">New raster image</a>
+            <table class="table table-hover">
+              <caption></caption>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>source</th>
+                  <th>target</th>
+                  <th>Image name</th>
+                  <th>rasters</th>
+                </tr>
+              </thead>
+              <tbody>
+                  {% for item in items %}
+                  <tr id="{{item.pk}}">
+                    <th scope="row">{{item.pk}}</th>
+                    <td>{% if item.sorgente %}<img src="{{item.sorgente_thumbnail.url}}"/>{% endif %}</td>
+                    <td>{% if item.webimg %}<img src="{{item.webimg_thumbnail.url}}"/>{% endif %}</td>
+                    <td>{{item.titolo}}</td>
+                    <td>item.imgs</td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+            </table>
+            <a type="button" class="btn btn-default" id="new">New raster image</a>
+    </div>
+</div>
+
+{% endblock %}
+{% block piedipagina %}{% endblock %}

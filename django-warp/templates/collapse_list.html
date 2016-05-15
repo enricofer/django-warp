@@ -1,0 +1,113 @@
+{% extends 'warp_base.html' %}
+{% load staticfiles %}
+{% comment %} {% endcomment %}
+
+{% block custom_style_link %}{% endblock %}
+{% block custom_style_inline %}
+
+.thumbs {border-style: solid; border-width: 1px;}
+.panel {margin-bottom: 4px;}
+#remove:hover {cursor: pointer; cursor: hand; color:blue}
+#recover:hover {cursor: pointer; cursor: hand; color:blue}
+
+{% endblock %}
+{% block custom_js %}
+<script src="http://bootboxjs.com/bootbox.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+    $("tr").click(function(event) {
+        if (event.target.tagName == 'TH'){
+          window.location = "/warp/imgset/"+event.target.parentElement.id+"/";
+        }
+        else if (event.target.tagName == 'TD'){
+          window.location = "/warp/imgset/"+event.target.parentElement.id+"/";
+        }
+        else if (event.target.tagName == 'IMG'){
+          window.location = "/warp/imgset/"+event.target.parentElement.parentElement.id+"/";
+        }
+        else if (event.target.tagName == 'SPAN'){
+            if (event.target.id == "remove"){
+                bootbox.confirm("Do you really want to trash image? " + event.target.parentElement.parentElement.id.toString(), function(result) {
+                    if (result) { window.location = "/warp/trashimage/" + event.target.parentElement.parentElement.id+"/"; }
+                });
+            } 
+            if (event.target.id == "recover"){
+                window.location = "/warp/recoverimage/" + event.target.parentElement.parentElement.id+"/"; 
+            } 
+            
+        }
+    });
+    
+    
+    $("#new").click(function(event) {
+        window.location = "/warp/newimage/{{dataset.pk}}/"
+    });
+    
+});
+</script>
+{% endblock %}
+{% block onload %}{% endblock %}
+{% block titolo %}DATASET {{dataset.name}}{% endblock %}
+{% block menu %}
+<li>
+<a href="/warp/">datasets admin</a>
+</li>
+{% endblock %}
+{% block contenuto %}
+
+
+<div class="container"> 
+    <div class="col-md-12">
+            <div id="accordion" role="tablist" aria-multiselectable="true">
+                {% for dataset in groups %}
+                <div class="panel panel-default">
+                    <div class="panel-heading" role="tab" id="heading{{dataset.pk}}">
+                        <h4 class="panel-title">
+                            <a data-toggle="collapse" data-parent="#accordion" href="#table{{dataset.pk}}" aria-expanded="true" aria-controls="collapseOne">{{dataset.name}}</a>
+                        </h4>
+                    </div>
+                    <div class="panel-collapse collapse {% if dataset.pk == choice %}in{% endif %}" role="tabpanel" aria-labelledby="heading{{dataset.pk}}" id="table{{dataset.pk}}">
+                        <div class="panel-body">
+                            {% if dataset.name != '__TRASH' %}<a type="button" class="btn btn-default" href="/warp/newimage/{{dataset.pk}}/">Nuova immagine</a>{% endif %}
+                            <table class="table table-hover">
+                              <caption></caption>
+                              <thead>
+                                <tr>
+                                  <th>#</th>
+                                  <th>sorgente</th>
+                                  <th>destinazione</th>
+                                  <th>titolo</th>
+                                  <th></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                  {% for item in items %}
+                                      {% if item.dataset.pk == dataset.pk %}
+                                      <tr id="{{item.pk}}">
+                                        <th scope="row">{{item.pk}}</th>
+                                        <td>{% if item.sorgente %}<img class="thumbs" src="{{item.sorgente_thumbnail.url}}"/>{% endif %}</td>
+                                        <td>{% if item.webimg %}<img class="thumbs" src="{{item.webimg_thumbnail.url}}"/>{% endif %}</td>
+                                        <td>{{item.titolo}}</td>
+                                        <td>
+                                            {% if dataset.name != '__TRASH' %}
+                                            <span id="remove" class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                            {% else %}
+                                            <span id="recover" class="glyphicon glyphicon-share-alt" aria-hidden="true"></span>
+                                            {% endif %}
+                                        </td>
+                                      </tr>
+                                      {% endif %}
+                                  {% endfor %}
+                              </tbody>
+                            </table>
+                            {% if dataset.name != '__TRASH' %}<a type="button" class="btn btn-default" href="/warp/newimage/{{dataset.pk}}/">Nuova immagine</a>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block piedipagina %}{% endblock %}
