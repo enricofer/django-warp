@@ -25,7 +25,7 @@
 {% endblock %}
 {% block custom_js %}
 <script type="text/javascript" src="{{settings.STATIC_URL}}warp/js/ol.js"></script>
-<script src="http://mrrio.github.io/jsPDF/dist/jspdf.min.js" type="text/javascript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.2.61/jspdf.min.js" type="text/javascript"></script>
 <script src="http://cdnjs.cloudflare.com/ajax/libs/proj4js/2.2.1/proj4.js"></script>
 <script src="http://epsg.io/{{ dataset.epsg }}.js"></script>
 <script type="text/javascript">
@@ -110,8 +110,101 @@ $(document).ready(function(){
     console.log('doc ready');
 });
 
+window.app = {};
+var app = window.app;
+
+app.Drag = function() {
+  
+  ol.interaction.Pointer.call(this, {
+    handleDownEvent: app.Drag.prototype.handleDownEvent,
+    handleDragEvent: app.Drag.prototype.handleDragEvent,
+    handleMoveEvent: app.Drag.prototype.handleMoveEvent,
+    handleUpEvent: app.Drag.prototype.handleUpEvent
+  });
+
+  this.coordinate_ = null;
+  this.cursor_ = 'pointer';
+  this.feature_ = null;
+  this.previousCursor_ = undefined;
+
+};
+
+ol.inherits(app.Drag, ol.interaction.Pointer);
+
+app.Drag.prototype.handleDownEvent = function(evt) {
+  var map = evt.map;
+
+  var feature = map.forEachFeatureAtPixel(evt.pixel,
+      function(feature, layer) {
+        return feature;
+      }, 
+      null, 
+      function(layer) {
+        return layer === frame_overlay;
+      });
+
+  if (feature) {
+    this.coordinate_ = evt.coordinate;
+    this.feature_ = feature;
+  }
+
+  return !!feature;
+};
+
+app.Drag.prototype.handleDragEvent = function(evt) {
+  var map = evt.map;
+  var feature = map.forEachFeatureAtPixel(evt.pixel,
+      function(feature, layer) {
+        return feature;
+      }, 
+      null, 
+      function(layer) {
+        return layer === frame_overlay;
+      });
+  var deltaX = evt.coordinate[0] - this.coordinate_[0];
+  var deltaY = evt.coordinate[1] - this.coordinate_[1];
+  var geometry = /** @type {ol.geom.SimpleGeometry} */
+      (this.feature_.getGeometry());
+  geometry.translate(deltaX, deltaY);
+  this.coordinate_[0] = evt.coordinate[0];
+  this.coordinate_[1] = evt.coordinate[1];
+};
+
+app.Drag.prototype.handleMoveEvent = function(evt) {
+  if (this.cursor_) {
+    var map = evt.map;
+    var feature = map.forEachFeatureAtPixel(evt.pixel,
+        function(feature, layer) {
+          return feature;
+      }, 
+      null, 
+      function(layer) {
+        return layer === frame_overlay;
+        });
+    var element = evt.map.getTargetElement();
+    if (feature) {
+      if (element.style.cursor != this.cursor_) {
+        this.previousCursor_ = element.style.cursor;
+        element.style.cursor = this.cursor_;
+      }
+    } else if (this.previousCursor_ !== undefined) {
+      element.style.cursor = this.previousCursor_;
+      this.previousCursor_ = undefined;
+    }
+  }
+};
+
+app.Drag.prototype.handleUpEvent = function(evt) {
+  this.coordinate_ = null;
+  this.feature_ = null;
+  return false;
+};
+
+var drag_polygon = new app.Drag();
+
 function draw_frame(){
 
+    frame_overlay.setVisible(true);
     var format = document.getElementById('format').value;
     var dim = dims[format];
 
@@ -170,7 +263,8 @@ function init(){
         })
       })
     })
-
+    
+/*
     var wms_base = new ol.layer.Tile({
             extent: targetExtent,
             title: 'PRG',
@@ -180,8 +274,13 @@ function init(){
               params: {'LAYERS': 'PRG'}
             })
           });
-    
+*/
+    var wms_base = new ol.layer.Tile({
+        source: new ol.source.OSM()
+    });
+
     map_print = new ol.Map({
+      interactions: ol.interaction.defaults().extend([new app.Drag()]),
       layers: [
           wms_base,
           georef_overlay,
@@ -227,11 +326,14 @@ function init(){
 
     exportElement.addEventListener('click', function(e) {
       console.log("CICCIO!");
+      var view_size = map_print.getSize()
+      var view_extent = map_print.getView().calculateExtent(view_size)
       if (exportElement.className.indexOf('disabled') > -1) {
         return;
       }
       //exportElement.className += 'disabled';
       $( "#esporta_pdf" ).addClass( 'disabled' );
+      $( "#progress" ).removeClass( 'hidden' );
 
       var format = document.getElementById('format').value;
       var resolution = document.getElementById('resolution').value;
@@ -244,6 +346,7 @@ function init(){
       //var extent = draw_frame();
       console.log(draw_frame())
       var extent = frameGeometry.getExtent();
+      frame_overlay.setVisible(false);
       console.log(extent)
 
       console.log('DIM:'+resolution.toString());
@@ -271,10 +374,12 @@ function init(){
             source.un('tileloadstart', tileLoadStart);
             source.un('tileloadend', tileLoadEnd, canvas);
             source.un('tileloaderror', tileLoadEnd, canvas);
-            map_print.setSize(size);
-            map_print.getView().fit(extent, size);
-            map_print.renderSync();
+            map_print.setSize(view_size);
+            map_print.getView().fit(view_extent, view_size,{constrainResolution:false,nearest:true});
             $( "#esporta_pdf" ).removeClass( 'disabled' );
+            $( "#progress" ).addClass( 'hidden' );
+            frame_overlay.setVisible(true);
+            map_print.renderSync();
             document.body.style.cursor = 'auto';
           }, 100);
         }
@@ -287,8 +392,11 @@ function init(){
       });
 
       map_print.setSize(size);
-      map_print.getView().fit(extent, size); // /** @type {ol.Size} */ (map_print.getSize()));
+      map_print.getView().fit(extent, size,{constrainResolution:false,nearest:true}); // /** @type {ol.Size} */ (map_print.getSize()));
       map_print.renderSync();
+      
+      
+      console.log('FINE1');
 
     }, false);
 
@@ -330,7 +438,7 @@ function init(){
             <a class="btn btn-default" id="esporta_png" download="map.png" role="button">Esporta immagine</a>
             <div class="pull-right">
                 <a id="messaggio_errore"  class="hidden btn btn-warning" role="button">Errore di caricamento</a>
-                <div class="" id="progress"></div>
+                <div class="hidden" id="progress"></div>
             </div>
             <div class="panel-body">
                 <div style="width:100%;height:762px" id="map_print"></div>
