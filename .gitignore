@@ -7,3 +7,7 @@ django-warp/bak/
 django-warp/migrations/
 django-warp/__pycache__/
 django-warp/templates/bak/
+dist/
+dist/*
+django_warp.egg-info/
+django_warp.egg-info/*
