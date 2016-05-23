@@ -1,0 +1,119 @@
+format, dpi, pixelx, pixely,
+A1,72,1684,2384,
+A1,200,4678,6622,
+A1,300,7017,9933,
+A1,400,9356,13244,
+A1,600,14034,19866,
+A1,1200,28068,39732,
+A2,72,1191,1684,
+A2,200,3308,4678,
+A2,300,4962,7017,
+A2,400,6616,9356,
+A2,600,9924,14034,
+A2,1200,19848,28068,
+A3,72,842,1191,
+A3,200,2339,3308,
+A3,300,3508,4962,
+A3,400,4677,6616,
+A3,600,7016,9924,
+A3,1200,14031,19848,
+A4,72,595,842,
+A4,200,1654,2339,
+A4,300,2480,3508,
+A4,400,3307,4677,
+A4,600,4961,7016,
+A4,1200,9921,14031,
+A5,72,420,595,
+A5,200,1167,1653,
+A5,300,1751,2479,
+A5,400,2335,3305,
+A5,600,4958,3502,
+A5,1200,7004,9916,
+
+
+{
+    "A4":{
+        "portrait":{
+                "width": 21,
+                "height": 29.7,
+                "100 dpi":{
+                        "pixel_width": 827,
+                        "pixel_height": 1169,5
+                    },
+                "200 dpi":{
+                        "pixel_width": 1654,
+                        "pixel_height": 2339
+                    },
+                "300 dpi":{
+                        "pixel_width": 2480,
+                        "pixel_height": 3508
+                    },
+                "400 dpi":{
+                        "pixel_width": 3307,
+                        "pixel_height": 4677
+                    }
+            },
+        "landscape":{
+                "height": 21,
+                "width": 29.7,
+                "100 dpi":{
+                        "pixel_height": 827,
+                        "pixel_width": 1169,5
+                    },
+                "200 dpi":{
+                        "pixel_height": 1654,
+                        "pixel_width": 2339
+                    },
+                "300 dpi":{
+                        "pixel_height": 2480,
+                        "pixel_width": 3508
+                    },
+                "400 dpi":{
+                        "pixel_height": 3307,
+                        "pixel_width": 4677
+                    }
+            }
+        },
+    "A3":{
+        "portrait":{
+                "height": 42,
+                "width": 29.7,
+                "100 dpi":{
+                        "pixel_width": 1654,
+                        "pixel_height": 2339
+                    },
+                "200 dpi":{
+                        "pixel_width": 3307,
+                        "pixel_height": 4677
+                    },
+                "300 dpi":{
+                        "pixel_width": 4960,
+                        "pixel_height": 7016
+                    },
+                "400 dpi":{
+                        "pixel_width": 6614,
+                        "pixel_height": 9354
+                    }
+            },
+        "landscape":{
+                "width": 42,
+                "height": 29.7,
+                "100 dpi":{
+                        "pixel_height": 1654,
+                        "pixel_width": 2339
+                    },
+                "200 dpi":{
+                        "pixel_height": 3307,
+                        "pixel_width": 4677
+                    },
+                "300 dpi":{
+                        "pixel_height": 4960,
+                        "pixel_width": 7016
+                    },
+                "400 dpi":{
+                        "pixel_height": 6614,
+                        "pixel_width": 9354
+                    }
+            }
+        },
+}

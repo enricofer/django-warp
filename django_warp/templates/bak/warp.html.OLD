@@ -1,0 +1,650 @@
+{% extends 'warp_base.html' %}
+{% load staticfiles %}
+{% comment %} {% endcomment %}
+
+{% block custom_style_link %}
+{% comment %} <link rel="stylesheet" href="http://openlayers.org/en/v3.7.0/resources/layout.css" />{% endcomment %}
+<link rel="stylesheet" href="{{settings.STATIC_URL}}warp/css/ol.css" />
+{% endblock %}
+{% block custom_style_inline %}
+
+#progress {
+    background: transparent url("/static/warp/ajax-loader.gif") no-repeat center;
+    float: left;
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+}
+
+#upload {
+    display: inline-block;
+    padding: 4px;
+}
+
+{% endblock %}
+{% block custom_js %}
+<script type="text/javascript" src="{{settings.STATIC_URL}}warp/js/ol.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/proj4js/2.2.1/proj4.js"></script>
+<script src="http://epsg.io/3003.js"></script>
+<script type="text/javascript">
+
+var localExtent = [0, 0, {{source.img.width}}, {{source.img.height}}];
+var localProjection = new ol.proj.Projection({
+  code: 'georef_source',
+  units: 'pixels',
+  extent: localExtent
+});
+
+var indiceControllo = 1;
+var controlli = [];
+
+var PDExtent = [1716014, 5023919, 1737137, 5038662];
+
+var map_sorgente, map_destinazione;
+var controllo_sorgente, controllo_destinazione;
+var georef_overlay, clipFeatures, clipFeatureOverlay
+
+var monteMario = new ol.proj.Projection({
+  code: 'EPSG:3003',
+  // The extent is used to determine zoom level 0. Recommended values for a
+  // projection's validity extent can be found at http://epsg.io/.
+  extent: PDExtent,
+  units: 'm'
+});
+ol.proj.addProjection(monteMario);
+
+var geoJson_convertitore = new ol.format.GeoJSON();
+
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+var csrftoken = getCookie('csrftoken');
+
+function csrfSafeMethod(method) {
+    // these HTTP methods do not require CSRF protection
+    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        console.log("AJAX_sending")
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
+$(document).ready(function(){
+
+
+    // funzione per intecettare invio della form ed aggiungere alcuni campi prima del submit
+    $('#fase2').submit(function(eventObj) {
+        console.log("fase2");
+        
+        var sorgente_features = controllo_sorgente.getSource().getFeatures();
+        var sorgente_json = geoJson_convertitore.writeFeatures(sorgente_features);
+        var sorgente_output = JSON.stringify(sorgente_json);
+        $(this).append("<input type='hidden' name='controlli_sorgente' value='"+sorgente_output+"' /> ");
+        
+        var destinazione_features = controllo_destinazione.getSource().getFeatures();
+        var destinazione_json = geoJson_convertitore.writeFeatures(destinazione_features);
+        var destinazione_output = JSON.stringify(destinazione_json);
+        $(this).append("<input type='hidden' name='controlli_destinazione' value='"+destinazione_output+"' /> ");
+        
+        var clip_features = clipOverlay.getSource().getFeatures();
+        var clip_json = geoJson_convertitore.writeFeatures(clip_features);
+        var clip_output = JSON.stringify(clip_json);
+        $(this).append("<input type='hidden' name='clip_poligono' value='"+clip_output+"' /> ");
+
+        eventObj.preventDefault();
+
+        var dataForm = {}
+        var Form = this;
+
+        //Gathering the Data
+        //and removing undefined keys(buttons)
+        $.each(this.elements, function(i, v){
+                var input = $(v);
+            dataForm[input.attr("name")] = input.val();
+            delete dataForm["undefined"];
+        });
+        
+        console.log(dataForm);
+        $('#progress').removeClass("hidden");
+        
+        $.ajax({
+            csrfmiddlewaretoken: '{{ csrf_token }}',
+            url: '/warp/apply/',
+            type: 'POST',
+            data: JSON.stringify(dataForm),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            async: false,
+            success: function(payload) {
+                $('#progress').addClass("hidden");
+                console.log(payload.valida);
+                console.log(payload.esito);
+                console.log(payload.dest_img);
+                console.log(payload.geotiff);
+                console.log(payload.img_dim);
+                console.log(payload.clip);
+                console.log(payload.estensione);
+                if (payload.valida){
+                    georef_overlay.setExtent(payload.estensione)
+                    georef_overlay.setSource(new ol.source.ImageStatic({
+                          url: payload.dest_img,
+                          projection: monteMario,
+                          //size: payload.img_dim,
+                          imageExtent: payload.estensione
+                        })
+                    )
+                    $('#download').removeClass("hidden");
+                    $('#download').attr("href", payload.geotiff);
+                    $('#download').attr("download", "immagine.geotiff");
+                    $('#print').removeClass("hidden");
+                    $('#print').attr("href", "/warp/print/"+payload.id+"/");
+                    $('#messaggio_errore').addClass("hidden");
+                    georef_overlay.refresh({force:true});
+                } else {
+                    console.log("ERRORE");
+                    $('#messaggio_errore').removeClass("hidden");
+                    $('#download').addClass("hidden");
+                    $('#print').addClass("hidden");
+                    $('#messaggio_errore').text(payload.esito);
+                }
+            }
+        });
+    });
+    
+    $( '#aggiungiControllo' ).click( function(event) {
+        aggiungiControllo();
+    });
+    
+    $( '#rimuoviControllo' ).click( function(event) {
+        rimuoviControllo();
+    });
+    
+    $( '#resetControlli' ).click( function(event) {
+        resetControlli();
+    });
+    
+    $( '#saveControlli' ).click( function(event) {
+        
+        var sorgente_features = controllo_sorgente.getSource().getFeatures();
+        var sorgente_json = JSON.parse(geoJson_convertitore.writeFeatures(sorgente_features));
+        var destinazione_features = controllo_destinazione.getSource().getFeatures();
+        var destinazione_json = JSON.parse(geoJson_convertitore.writeFeatures(destinazione_features));
+        console.log (destinazione_json);
+        
+        var correlazione = [];
+        for (var i = 0; i < destinazione_json.features.length; i++) {
+            correlazione.push([[],[]]);
+        }
+        console.log (correlazione);
+        for (var i = 0; i < destinazione_json.features.length; i++) {
+            correlazione[sorgente_json.features[i].properties.indice-1][0] = sorgente_json.features[i].geometry.coordinates;
+            correlazione[destinazione_json.features[i].properties.indice-1][1] = destinazione_json.features[i].geometry.coordinates;
+        }
+        console.log (correlazione);
+        $("<a />", {
+            "download": "correlazione.json",
+            "href" : "data:application/json," + encodeURIComponent(JSON.stringify(correlazione, null, '\t'))
+            }).appendTo("body")
+            .click(function() {
+             $(this).remove()
+            })[0].click()
+        });
+    
+    $( '#loadControlli' ).click( function(event) {
+        if ($("#upload").hasClass( "hidden" )){
+            $("#upload").removeClass("hidden");
+        } else {
+            $("#upload").addClass("hidden");
+        }
+    });
+    
+    $( '#upload' ).change( function(event) {
+          var reader = new FileReader();
+
+          reader.onload = function(event) {
+            var jsonObj = JSON.parse(event.target.result);
+            console.log(jsonObj);
+            caricaPuntiCorrelazione(jsonObj);
+            $("#upload").addClass("hidden");
+          }
+
+          reader.readAsText(event.target.files[0]);$("upload").removeClass("hidden");
+    });
+    
+    $( '#clip' ).click( function(event) {
+        if ($("#clip").hasClass( "active" )){
+            map_sorgente.removeInteraction(drawInteraction);
+            map_sorgente.removeInteraction(modifyInteraction);
+        } else {
+            map_sorgente.addInteraction(drawInteraction);
+            map_sorgente.addInteraction(modifyInteraction);
+        }
+    });
+    
+    $('#download').attr({target: '_blank', 
+                    href  : 'http://localhost/directory/file.pdf'});
+                    
+    console.log('doc ready');
+});
+
+window.app = {};
+var app = window.app;
+
+/**
+ * @constructor
+ * @extends {ol.interaction.Pointer}
+ */
+app.Drag = function() {
+
+  ol.interaction.Pointer.call(this, {
+    handleDownEvent: app.Drag.prototype.handleDownEvent,
+    handleDragEvent: app.Drag.prototype.handleDragEvent,
+    handleMoveEvent: app.Drag.prototype.handleMoveEvent,
+    handleUpEvent: app.Drag.prototype.handleUpEvent
+  });
+
+  /**
+   * @type {ol.Pixel}
+   * @private
+   */
+  this.coordinate_ = null;
+
+  /**
+   * @type {string|undefined}
+   * @private
+   */
+  this.cursor_ = 'pointer';
+
+  /**
+   * @type {ol.Feature}
+   * @private
+   */
+  this.feature_ = null;
+
+  /**
+   * @type {string|undefined}
+   * @private
+   */
+  this.previousCursor_ = undefined;
+
+};
+ol.inherits(app.Drag, ol.interaction.Pointer);
+
+/**
+ * @param {ol.MapBrowserEvent} evt Map browser event.
+ * @return {boolean} `true` to start the drag sequence.
+ */
+app.Drag.prototype.handleDownEvent = function(evt) {
+  var map = evt.map;
+
+  var feature = map.forEachFeatureAtPixel(evt.pixel,
+      function(feature, layer) {
+        return feature;
+      });
+
+  if (feature) {
+    this.coordinate_ = evt.coordinate;
+    this.feature_ = feature;
+  }
+
+  return !!feature;
+};
+
+/**
+ * @param {ol.MapBrowserEvent} evt Map browser event.
+ */
+app.Drag.prototype.handleDragEvent = function(evt) {
+  var map = evt.map;
+
+  var feature = map.forEachFeatureAtPixel(evt.pixel,
+      function(feature, layer) {
+        return feature;
+      });
+
+  var deltaX = evt.coordinate[0] - this.coordinate_[0];
+  var deltaY = evt.coordinate[1] - this.coordinate_[1];
+
+  var geometry = /** @type {ol.geom.SimpleGeometry} */
+      (this.feature_.getGeometry());
+  geometry.translate(deltaX, deltaY);
+
+  this.coordinate_[0] = evt.coordinate[0];
+  this.coordinate_[1] = evt.coordinate[1];
+};
+
+/**
+ * @param {ol.MapBrowserEvent} evt Event.
+ */
+app.Drag.prototype.handleMoveEvent = function(evt) {
+  if (this.cursor_) {
+    var map = evt.map;
+    var feature = map.forEachFeatureAtPixel(evt.pixel,
+        function(feature, layer) {
+          return feature;
+        });
+    var element = evt.map.getTargetElement();
+    if (feature) {
+      if (element.style.cursor != this.cursor_) {
+        this.previousCursor_ = element.style.cursor;
+        element.style.cursor = this.cursor_;
+      }
+    } else if (this.previousCursor_ !== undefined) {
+      element.style.cursor = this.previousCursor_;
+      this.previousCursor_ = undefined;
+    }
+  }
+};
+
+/**
+ * @param {ol.MapBrowserEvent} evt Map browser event.
+ * @return {boolean} `false` to stop the drag sequence.
+ */
+app.Drag.prototype.handleUpEvent = function(evt) {
+  this.coordinate_ = null;
+  this.feature_ = null;
+  return false;
+};
+
+var controlInteractions = ol.interaction.defaults().extend([new app.Drag()]);
+var drawInteraction, modifyInteraction, clipInteractions;
+            
+
+function aggiungiControllo(){
+    var newControlSorgente = new ol.Feature({
+            geometry: new ol.geom.Point(map_sorgente.getView().getCenter()),
+            indice: controlli.length+1
+        }); 
+    var newControlDestinazione = new ol.Feature({
+            geometry: new ol.geom.Point(map_destinazione.getView().getCenter()),
+            indice: controlli.length+1
+        });
+    controllo_sorgente.getSource().addFeature( newControlSorgente );
+    controllo_destinazione.getSource().addFeature( newControlDestinazione );
+    controlli.push([newControlSorgente,newControlDestinazione]);
+}
+
+function caricaControllo(coord){
+    var newControlSorgente = new ol.Feature({
+            geometry: new ol.geom.Point(coord[0]),
+            indice: controlli.length+1
+        }); 
+    var newControlDestinazione = new ol.Feature({
+            geometry: new ol.geom.Point(coord[1]),
+            indice: controlli.length+1
+        });
+    controllo_sorgente.getSource().addFeature( newControlSorgente );
+    controllo_destinazione.getSource().addFeature( newControlDestinazione );
+    controlli.push([newControlSorgente,newControlDestinazione]);
+}
+
+function rimuoviControllo(){
+        if ( controlli.length > 0 ) {
+            ultimoControllo = controlli[controlli.length-1];
+            controllo_sorgente.getSource().removeFeature(ultimoControllo[0]);
+            controllo_destinazione.getSource().removeFeature(ultimoControllo[1]);
+            controlli.pop();
+            return true
+        } else { 
+            return false 
+        }
+    }
+
+function resetControlli(){
+        var ctrl = true;
+        while (ctrl) {
+            ctrl = rimuoviControllo();
+        }
+    }
+
+function caricaPuntiCorrelazione(listaPunti) {
+        resetControlli();
+        for (var i = 0; i < listaPunti.length; i++) {
+            caricaControllo(listaPunti[i]);
+        }
+        extent = controllo_destinazione.getSource().getExtent();
+        map_destinazione.getView().fit(extent, map_destinazione.getSize()); 
+    }
+
+function init(){
+
+
+    function controlStyle(feature) {
+        //console.log(feature.get('indice'));
+        var style = new ol.style.Style ({
+            image: new ol.style.Icon( ({
+              anchor: [0.5, 1],
+              anchorXUnits: 'fraction',
+              anchorYUnits: 'fraction',
+              opacity: 0.8,
+              src: '{{settings.STATIC_URL}}warp/marker_'+feature.get('indice')+'.png'
+            }))
+          });
+        return [style]
+    }
+
+
+    controllo_sorgente =  new ol.layer.Vector({
+      source: new ol.source.Vector({
+            projection: localProjection,
+          }),
+      style: controlStyle
+    })
+    
+    controllo_destinazione =  new ol.layer.Vector({
+      source: new ol.source.Vector({
+            projection: monteMario
+          }),
+      style: controlStyle
+    })
+
+
+    //clip overlay
+      clipFeatures = new ol.Collection();
+      clipOverlay = new ol.layer.Vector({
+        source: new ol.source.Vector({features: clipFeatures}),
+        style: new ol.style.Style({
+          fill: new ol.style.Fill({
+            color: 'rgba(255, 255, 255, 0.2)'
+          }),
+          stroke: new ol.style.Stroke({
+            color: '#ffcc33',
+            width: 2
+          }),
+          image: new ol.style.Circle({
+            radius: 7,
+            fill: new ol.style.Fill({
+              color: '#ffcc33'
+            })
+          })
+        })
+      });
+
+    drawInteraction = new ol.interaction.Draw({
+                    features: clipFeatures,
+                    type: /** @type {ol.geom.GeometryType} */ ("Polygon")
+                });
+    modifyInteraction = new ol.interaction.Modify({
+                    features: clipFeatures,
+                    // the SHIFT key must be pressed to delete vertices, so
+                    // that new vertices can be drawn at the same position
+                    // of existing vertices
+                    deleteCondition: function(event) {
+                        return ol.events.condition.shiftKeyOnly(event) &&
+                        ol.events.condition.singleClick(event);
+                    }
+                });
+
+    map_sorgente = new ol.Map({
+      interactions: controlInteractions,
+      layers: [
+        new ol.layer.Image({
+          source: new ol.source.ImageStatic({
+            attributions: [
+              new ol.Attribution({
+                html: '<h3>{{source.attribution}}ss</h3>'
+              })
+            ],
+            url: '{{source.img.url}}?dum='+getRandomInt(1000000,9999999).toString(),
+            //projection: localProjection,
+            imageExtent: localExtent
+          })
+        }),
+        clipOverlay,
+        controllo_sorgente
+      ],
+      target: 'map_sorgente',
+      view: new ol.View({
+        projection: localProjection,
+        center: ol.extent.getCenter(localExtent),
+        zoom: 2
+      })
+    });
+    
+    
+    georef_overlay = 
+          new ol.layer.Image({
+            source: new ol.source.ImageStatic({
+              url: '',
+              size: [2157, 4073],
+              projection: monteMario,
+              imageExtent: [ 1720227.1864591343, 5015730.241732928, 1726224.4732261226, 5027054.7428928455 ],
+              attributions: [new ol.Attribution({
+                html: '&copy; ' +
+                    '<a href="http://www.padovanet.it' +
+                    'Comune di Padova, Settore Urbanistica</a>'
+              })]
+            })
+          });
+    
+    map_destinazione = new ol.Map({
+      interactions: ol.interaction.defaults().extend([new app.Drag()]),
+      layers: [
+          georef_overlay,
+          new ol.layer.Tile({
+            extent: PDExtent,
+            source: new ol.source.TileWMS({
+              url: 'http://172.25.193.167:8080/service?',
+              //url: 'http://localhost/cgi-bin/DBT/qgis_mapserv.fcgi?MAP=DBT3003.qgs',
+              attributions: [new ol.Attribution({
+                html: '&copy; ' +
+                    '<h3><a href="http://www.padovanet.it' +
+                    'Comune di Padova, Settore Urbanistica</a>gg</h3>'
+              })],
+              params: {'LAYERS': 'DBT,PRG,CATASTO'} //,CATASTO
+            })
+          }),
+          controllo_destinazione
+      ],
+      controls: ol.control.defaults().extend([
+        //new ol.control.ScaleLine(),
+        new ol.control.MousePosition(),
+        new ol.control.OverviewMap()
+      ]),
+      target: 'map_destinazione',
+      view: new ol.View({
+        projection: monteMario,
+        center: ol.extent.getCenter(PDExtent),
+        zoom: 2
+      })
+    });
+    
+    
+{% if source.correlazione %}
+    caricaPuntiCorrelazione(JSON.parse('{{source.correlazione}}'));
+{% endif %}
+
+
+}
+
+
+</script>
+{% endblock %}
+{% block onload %} {% if source %}onload="init()"{% endif %}{% endblock %}
+{% block titolo %}Georeferenziazione {% if source %}{{source.titolo}}{% endif %}{% endblock %}
+{% block menu %}{% endblock %}
+{% block contenuto %}
+
+
+<div class="container"> 
+    <div class="row-fluid">
+        {% if not source %}
+            <form id="fase1" role="form" action="/warp/" method="post"  enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="titolo">Titolo dell'immagine</label>
+                    {{form.titolo}}
+                    <label for="note">Annotazioni</label>
+                    {{form.note}}
+                    <label for="sorgente">Immagine sorgente</label><br/>
+                    <span class="btn btn-default btn-file">
+                        {{form.sorgente}}
+                    </span>
+                </div>
+                <button type="submit" class="btn btn-default">Carica</button>
+            </form>
+            <br/>
+        {% endif %}
+
+        <div class="col-md-12">
+            {% if errore %}<div class="alert alert-warning"><strong>ERRORE:</strong>{{errore}}</div>{% endif %}
+
+            {% if source %}
+                <div class="panel panel-default">
+                    <form id="fase2" class="form-inline input-sm" role="form" method="post">
+                        <input type="hidden" name="id" value="{{source.id}}">
+                        <a class="btn btn-default" id="aggiungiControllo" role="button">Aggiungi</a>
+                        <a class="btn btn-default" id="rimuoviControllo"  role="button">Rimuovi</a>
+                        <a class="btn btn-default" data-toggle="button" id="clip"   role="button">Clip</a>
+                        <a class="btn btn-danger" id="resetControlli"   role="button">Reset</a>
+                        <a class="btn btn-default" id="saveControlli"   role="button">Salva</a>
+                        <a class="btn btn-default" id="loadControlli"   role="button">Carica</a>
+                        <input class="btn btn-default hidden" type="file" id="upload" />
+                        <div class="pull-right">
+                            <a id="messaggio_errore"  class="hidden btn btn-warning" role="button">Errore di caricamento</a>
+                            <a class="hidden btn btn-success" id="download" role="button">Download</a>
+                            <a class="hidden btn btn-success" target="_blank" href="#" id="print" role="button">Stampa</a>
+                            <div class="hidden" id="progress"></div>
+                            <button type="submit" class="btn btn-primary">Georeferenzia</button>
+                        </div>
+                    </form>
+                    <div class="panel-body">
+                        <div style="width:100%;height:400px" id="map_sorgente"></div>
+                    </div>
+                </div>
+                
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <div style="width:100%;height:400px" id="map_destinazione"></div>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+
+  </div>
+</div>
+
+{% endblock %}
+{% block piedipagina %}{% endblock %}

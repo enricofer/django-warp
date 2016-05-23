@@ -5,8 +5,8 @@
 
 {% block custom_style_link %}
 {% comment %} <link rel="stylesheet" href="http://openlayers.org/en/v3.7.0/resources/layout.css" />{% endcomment %}
-<link rel="stylesheet" href="{{settings.STATIC_URL}}warp/css/ol.css" />
-<link rel="stylesheet" href="http://rawgit.com/walkermatt/ol3-layerswitcher/master/src/ol3-layerswitcher.css" />
+<link rel="stylesheet" href="/static/warp/css/ol.css" />
+<link rel="stylesheet" href="/static/warp/css/ol3-layerswitcher.css" />
 {% endblock %}
 {% block custom_style_inline %}
 
@@ -37,9 +37,9 @@ htlm body {
 
 {% endblock %}
 {% block custom_js %}
-<script type="text/javascript" src="{{settings.STATIC_URL}}warp/js/ol.js"></script>
-<script src="http://rawgit.com/walkermatt/ol3-layerswitcher/master/src/ol3-layerswitcher.js"></script>
-<script src="http://cdnjs.cloudflare.com/ajax/libs/proj4js/2.2.1/proj4.js"></script>
+<script type="text/javascript" src="/static/warp/js/ol.js"></script>
+<script src="/static/warp/js/ol3-layerswitcher.js"></script>
+<script src="/static/warp/js/proj4.js"></script>
 {% if source.dataset %}<script src="http://epsg.io/{{ source.dataset.epsg }}.js"></script>{% endif %}
 <script type="text/javascript">
 
@@ -662,7 +662,7 @@ function init(){
               })
             ],
             url: '{{source.img.url}}?dum='+getRandomInt(1000000,9999999).toString(),
-            //projection: localProjection,
+            projection: localProjection,
             imageExtent: localExtent
           })
         }),
@@ -689,7 +689,7 @@ function init(){
       {% endif %}
       clipTargetOverlay = new ol.layer.Vector({
         source: new ol.source.Vector({features: clipTargetFeatures}),
-        title: 'profilo di ritaglio',
+        title: 'clipping polygon',
         style: new ol.style.Style({
           fill: new ol.style.Fill({
             color: 'rgba(255, 255, 255, 0.2)'
@@ -712,7 +712,7 @@ function init(){
 
     georef_overlay = 
           new ol.layer.Image({
-            title: 'immagine georeferenziata',
+            title: 'georeferenced image',
 {% if source.target %}
             source: new ol.source.ImageStatic({
               url: '{{source.target}}',
@@ -758,7 +758,7 @@ function init(){
 {% endif %}
 
     var layerSwitcher = new ol.control.LayerSwitcher({
-        tipLabel: 'Legenda' // Optional label for button
+        tipLabel: 'Legend' // Optional label for button
     });
     map_destinazione.addControl(layerSwitcher);
     

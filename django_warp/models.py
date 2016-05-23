@@ -6,16 +6,21 @@ from imagekit.processors import ResizeToFill
 from django.dispatch import receiver
 import os
 
+
+def validate_file_extension(value):
+    if not (value.file.content_type == 'image/png' or value.file.content_type == 'image/jpeg'):
+        raise ValidationError(u'File not allowed: invalid extension')
+
 # Create your models here.
 class datasets(models.Model):
     name = models.CharField(max_length=50)
     slug = models.CharField(max_length=50,blank=True)
-    epsg = models.IntegerField()
-    extentLeft = models.FloatField()
-    extentBottom = models.FloatField()
-    extentRight = models.FloatField()
-    extentTop = models.FloatField()
-    baselayer = models.TextField(blank=True)
+    epsg = models.IntegerField(default = '3857')
+    extentLeft = models.FloatField(default = '-20000000.00')
+    extentBottom = models.FloatField(default = '-10000000.00')
+    extentRight = models.FloatField(default = '20000000.00')
+    extentTop = models.FloatField(default = '+20000000.00')
+    baselayer = models.TextField(default = 'new ol.layer.Tile({\n    source: new ol.source.OSM()\n}),',blank=True)
     #coverage = models.RasterField(blank=True,null=True)
 
     def publish(self):
@@ -32,7 +37,7 @@ class mappeGeoreferenziate(models.Model):
     note = models.TextField(blank=True)
     dataset = models.ForeignKey('datasets',blank=True,null=True,related_name="current_dataset")
     datasetRecover = models.ForeignKey('datasets',blank=True,null=True,related_name="recover_dataset")
-    sorgente = models.ImageField(upload_to='warp/')
+    sorgente = models.ImageField(upload_to='warp/', validators=[validate_file_extension])
     sorgente_thumbnail = ImageSpecField(source='sorgente',
                                       processors=[ResizeToFill(120, 120)],
                                       format='JPEG',

@@ -26,17 +26,17 @@ setup(
         'requests',
     ],
     include_package_data=True,
-    license='BSD License',  # example license
+    license='GNU General Public License v3 (GPLv3)',  # example license
     description='A Django app for easy/collaborative georeferencing of raster datasets. Make use of GDAL library',
     url='https://github.com/enricofer/django-warp',
-    author='Your Name',
+    author='Enrico Ferreguti',
     author_email='enricofer@gmail.com',
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
         'Framework :: Django :: 1.9',  # replace "X.Y" as appropriate
-        'Intended Audience :: Gis administrators',
-        'License :: OSI Approved :: GPL License',  # example license
+        'Intended Audience :: Other Audience',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',  # example license
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',

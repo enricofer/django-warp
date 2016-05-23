@@ -1,0 +1,27 @@
+{% extends 'warp_base.html' %}
+{% load staticfiles %}
+{% load addcss_tag %}
+{% comment %} {% endcomment %}
+
+{% block custom_style_link %}{% endblock %}
+{% block custom_style_inline %}{% endblock %}
+{% block custom_js %}{% endblock %}
+{% block onload %} onload="init()"{% endblock %}
+{% block titolo %}DATASET {% if source %}{{source.fileName}}{% endif %}{% endblock %}
+{% block menu %}{% endblock %}
+{% block contenuto %}
+
+
+<div class="container"> 
+    <div class="col-md-12">
+            <form id="dataset" action="/warp/{% if idx %}{{idx}}/editdataset/{% else %}newdataset/{% endif %}" method="post" class="input-sm">
+              {% csrf_token %}
+              {{form}}
+              </br>
+              <input type="submit" class="btn btn-default" value="Submit" />
+            </form>
+    </div>
+</div>
+
+{% endblock %}
+{% block piedipagina %}{% endblock %}
