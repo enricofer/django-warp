@@ -2,7 +2,7 @@
 Django Warp
 ==============
 
-Django Warp provides a reusable app for georeferencing of raster maps.
+Django Warp provides a reusable app for raster maps georeferencing.
 
 Features
 --------
@@ -30,10 +30,6 @@ Required python libraries:
 * git+https://github.com/geodesign/django-raster.git@master (development version)
 
 
-
-
-
-
 ==============
 INSTALL
 ==============
@@ -45,9 +41,13 @@ Last stable version:
     pip install django-warp
 
 
-
 =====
 USAGE
 =====
 
 * Add ``django_warp`` to your ``INSTALLED_APPS``
+* Add  ``url(r'^warp/', include('django_warp.urls')),`` to site ``urls.py``
+* ``./manage.py makemigrations django_warp`` and ``./manage.py migrate`` to create db context
+* Run server and browse to ``[yourserver address]\warp\`` and login with a valid site credentials
+* First create a dataset with epsg code, extents and baselayer
+* Then upload images and define correlation and clipping to do georeferencing
