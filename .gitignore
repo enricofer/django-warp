@@ -1,6 +1,8 @@
 *.pyc
 db.sqlite3
 manage.py
+documenti/
+documenti/*
 warp_test/*
 warp_test/
 django-warp/bak/

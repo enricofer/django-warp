@@ -138,6 +138,24 @@ def get_trash_dataset():
         trash_dataset = None
     return trash_dataset
 
+def dataset_view (request, datasetId = None):
+    dataset = datasets.objects.get(pk=datasetId)
+    dataset_imgs = mappeGeoreferenziate.objects.filter(dataset=datasetId)
+    map_images = []
+    print ("MAP IMAGES:", file=sys.stderr)
+    for map_image in dataset_imgs:
+        if map_image.webimg:
+            raster = GDALRaster(settings.MEDIA_ROOT + str(map_image.webimg), write=False)
+            print (map_image.webimg, file=sys.stderr)
+            map_images.append({
+                'titolo': map_image.titolo,
+                'url':settings.MEDIA_URL + str(map_image.webimg)+"?dum="+str(randint(1000000,9999999)),
+                'size':[map_image.webimg.width,map_image.webimg.height],
+                'extent':[raster.extent[0],raster.extent[1],raster.extent[2],raster.extent[3]]
+            })
+    print (map_images, file=sys.stderr)
+    return render(request, 'dataset_view.html', {'idx': datasetId, 'images': map_images, 'dataset':dataset, 'settings':settings})
+    
 
 @login_required(login_url='/warp/login/')
 def trash_image(request, idx = None):
@@ -184,6 +202,7 @@ def get_vrt(datasetId):
         vrt_files += '"'+settings.MEDIA_ROOT + str(img.destinazione) + '" '
     vrtFileName = os.path.join(settings.MEDIA_ROOT,'warp',dataset.name) + '.vrt'
     buildVrtCmd = 'gdalbuildvrt -overwrite "%s" %s' % (vrtFileName, vrt_files)
+    #coverage = GDALRaster(vrtFileName, write=False)
     #dataset.coverage = GDALRaster(vrtFileName, write=False)
     #dataset.save()
     print (buildVrtCmd, file=sys.stderr)
@@ -218,7 +237,7 @@ def georef_start(request, datasetId = None, idx = None):
         print ("\n",nuova_mappa, file=sys.stderr)  
         source = {
                 'item': nuova_mappa,
-                'img': nuova_mappa.sorgente, 
+                'img': nuova_mappa.sorgente,
                 'id':nuova_mappa.pk,
                 'target': None,
                 'download': None,

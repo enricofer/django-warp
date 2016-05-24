@@ -23,6 +23,7 @@ setup(
         'django-http-proxy',
         'python-slugify',
         'django-imagekit',
+        'django-raster',
         'requests',
     ],
     include_package_data=True,

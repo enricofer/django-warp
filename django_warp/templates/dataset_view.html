@@ -1,0 +1,122 @@
+{% extends 'warp_base.html' %}
+{% load staticfiles %}
+{% load l10n %}
+{% comment %} {% endcomment %}
+
+{% block custom_style_link %}
+<link rel="stylesheet" href="/static/warp/css/ol.css" />
+<link rel="stylesheet" href="/static/warp/css/ol3-layerswitcher.css" />
+{% endblock %}
+{% block custom_style_inline %}{% endblock %}
+{% block custom_js %}
+<script type="text/javascript" src="/static/warp/js/ol.js"></script>
+<script src="/static/warp/js/ol3-layerswitcher.js"></script>
+<script src="/static/warp/js/proj4.js"></script>
+{% if dataset %}<script src="http://epsg.io/{{ dataset.epsg }}.js"></script>{% endif %}
+<script type="text/javascript">
+
+{% localize off %}
+var targetExtent = [{{ dataset.extentLeft }}, {{ dataset.extentBottom }}, {{ dataset.extentRight }}, {{ dataset.extentTop }}]; 
+{% endlocalize %}
+
+var map;
+
+{% if dataset.epsg = 3857 or dataset.epsg = 4326 %}
+var targetProjection = 'EPSG:{{ dataset.epsg }}';
+{% else %}
+var targetProjection = new ol.proj.Projection({
+  code: 'EPSG:{{ dataset.epsg }}',
+  // The extent is used to determine zoom level 0. Recommended values for a
+  // projection's validity extent can be found at http://epsg.io/.
+  extent: targetExtent,
+  //units: 'm'
+});
+ol.proj.addProjection(targetProjection);
+{% endif %}
+
+$(document).ready(function(){
+
+    console.log('doc ready');
+});
+
+function init(){
+
+    var dumlayer = new ol.layer.Vector({});
+
+    map = new ol.Map({
+      layers: [
+      
+{{ dataset.baselayer | escape | safe }}
+
+{% for image in images %}
+      new ol.layer.Image({
+            title: '{{ image.titolo}}',
+            source: new ol.source.ImageStatic({
+              url: '{{ image.url }}',
+              size: {{image.size}},
+              projection: targetProjection,
+              imageExtent: {{image.extent}}
+            })
+          }),
+{% endfor %}
+      ],
+      controls: ol.control.defaults().extend([
+        //new ol.control.ScaleLine(),
+        new ol.control.MousePosition(),
+        new ol.control.OverviewMap()
+      ]),
+      target: 'map',
+      view: new ol.View({
+        projection: targetProjection,
+        center: ol.extent.getCenter(targetExtent),
+        zoom: 2
+      })
+    });
+
+    var layerSwitcher = new ol.control.LayerSwitcher({
+        tipLabel: 'Legend' // Optional label for button
+    });
+    map.addControl(layerSwitcher);
+
+    var extent_array =[{% for image in images %}{{image.extent}},{% endfor %}]
+
+    var extent = ol.extent.createEmpty();
+    extent_array.forEach(function(map_ext) {
+      ol.extent.extend(extent, map_ext);
+    });
+    map.getView().fit(extent, map.getSize());
+
+}
+
+
+</script>
+{% endblock %}
+{% block onload %} onload="init()"{% endblock %}
+{% block titolo %}DATASET {{idx}} OVERVIEW{% endblock %}
+{% block menu %}
+<li>
+    <a href="/warp/{{idx}}/">Dataset detail</a>
+</li>
+<li>
+    <a href="/warp/">Datasets</a>
+</li>
+{% endblock %}
+{% block contenuto %}
+
+<div class="container"> 
+    <div class="col-md-12">
+      <div class="panel panel-default">
+              <div class="panel-body">
+                  <div style="width:100%;height:600px" id="map"></div>
+              </div>
+      </div>
+    </div>
+</div>
+<div class="container"> 
+    <div id ="destinazioni" class="col-md-12">
+        {{ table }}
+    </div>
+</div>
+
+{% endblock %}
+{% block piedipagina %}{% endblock %}

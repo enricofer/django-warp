@@ -777,7 +777,10 @@ function init(){
 {% block titolo %}{{ dataset.epsg }}Georeferencing {% if source %}{{source.attribution}}{% endif %}{% endblock %}
 {% block menu %}
 <li>
-<a href="/warp/{{ dataset }}">dataset {{ dataset }}</a>
+<a href="/warp/{{ dataset }}">dataset {{ dataset }} detail</a>
+</li>
+<li>
+<a href="/warp/viewdataset/{{ dataset }}">dataset {{ dataset }} overview</a>
 </li>
 {% endblock %}
 {% block contenuto %}
