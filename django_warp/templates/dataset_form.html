@@ -12,6 +12,7 @@
 <script src="/static/warp/js/ol3-layerswitcher.js"></script>
 <script src="/static/warp/js/proj4.js"></script>
 <script src="http://epsg.io/{{ form.epsg.value }}.js"></script>
+<script src="/static/warp/js/epsg.js"></script>
 <script type="text/javascript">
 {% localize off %}
 var targetExtent = [{{ form.extentLeft.value }}, {{ form.extentBottom.value }}, {{ form.extentRight.value }}, {{ form.extentTop.value }}];
@@ -21,6 +22,12 @@ var rightTop = [{{ form.extentRight.value }},{{ form.extentTop.value }}]
 
 var targetProjection;
 var noInit = false;
+
+function sleep(miliseconds) {
+    var currentTime = new Date().getTime();
+    while (currentTime + miliseconds >= new Date().getTime()) {
+    }
+}
 
 {% comment %}
 {% if form.epsg.value = 3857 or form.epsg.value = 4326 %}
@@ -38,15 +45,6 @@ ol.proj.addProjection(targetProjection);
 {% endcomment %}
 
 $(document).ready(function() {
-
-    jQuery.loadScript = function (url, callback) {
-        jQuery.ajax({
-            url: url,
-            dataType: 'script',
-            success: callback,
-            async: false
-        });
-    }
     
     targetProjection = 'EPSG:'+$("#id_epsg").val().toString();
 
@@ -71,13 +69,9 @@ $(document).ready(function() {
         
         console.log ("reprojection");
         
-        $.loadScript("http://epsg.io/"+$("#id_epsg").val().toString()+".js", function(){
-            console.log("loaded projection "+$("#id_epsg").val().toString());
-        })
-        
-        targetProjection = 'EPSG:'+$("#id_epsg").val().toString();
-        var leftBottom_new = ol.proj.fromLonLat([parseFloat($("#id_lonMin").val()),parseFloat($("#id_latMin").val())], targetProjection); //parseFloat()
-        var rightTop_new = ol.proj.fromLonLat([parseFloat($("#id_lonMax").val()),parseFloat($("#id_latMax").val())], targetProjection); //parseFloat()
+        var newTargetProjection = 'EPSG:'+$("#id_epsg").val().toString();
+        var leftBottom_new = ol.proj.fromLonLat([parseFloat($("#id_lonMin").val()),parseFloat($("#id_latMin").val())], newTargetProjection); //parseFloat()
+        var rightTop_new = ol.proj.fromLonLat([parseFloat($("#id_lonMax").val()),parseFloat($("#id_latMax").val())], newTargetProjection); //parseFloat()
         $("#id_extentLeft").val(leftBottom_new[0]);
         $("#id_extentBottom").val(leftBottom_new[1]);
         $("#id_extentRight").val(rightTop_new[0]);
@@ -172,9 +166,6 @@ function init(){
                     <div class="panel panel-default col-md-8">
                       <div class="panel-body">
                           <div style="width:100%;height:600px" id="map"></div>
-                          </br>
-                          <a id="update_button" class="btn btn-default" href="#" role="button">Update Form</a> 
-                          </br>
                       </div>
                     </div>
                 </div>

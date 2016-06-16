@@ -80,11 +80,15 @@ function init(){
 
     var extent_array =[{% for image in images %}{{image.extent}},{% endfor %}]
 
-    var extent = ol.extent.createEmpty();
-    extent_array.forEach(function(map_ext) {
-      ol.extent.extend(extent, map_ext);
-    });
-    map.getView().fit(extent, map.getSize());
+    if (extent_array == []){
+        var extent = ol.extent.createEmpty();
+        extent_array.forEach(function(map_ext) {
+          ol.extent.extend(extent, map_ext);
+        });
+        map.getView().fit(extent, map.getSize());
+    } else {
+        map.getView().fit(targetExtent, map.getSize());
+    }
 
 }
 
