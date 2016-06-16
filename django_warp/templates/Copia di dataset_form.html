@@ -1,0 +1,32 @@
+{% extends 'warp_base.html' %}
+{% load staticfiles %}
+{% comment %} {% endcomment %}
+
+{% block custom_style_link %}{% endblock %}
+{% block custom_style_inline %}
+.form-control {font-family:monospace;!important;}
+{% endblock %}
+{% block custom_js %}{% endblock %}
+{% block onload %}{% endblock %}
+{% block titolo %}DATASET {% if idx %}{{idx}}{% endif %} {% if form %}{{form.name.value}}{% endif %} {% endblock %}
+{% block menu %}
+<li>
+<a href="/warp/">dataset admin</a>
+</li>
+{% endblock %}
+{% block contenuto %}
+
+
+<div class="container"> 
+    <div class="col-md-12">
+            <form id="dataset" action="/warp/{% if idx %}editdataset/{{idx}}/{% else %}newdataset/{% endif %}" method="post" class="input-sm">
+              {% csrf_token %}
+              {{form}}
+              </br>
+              <input type="submit" class="btn btn-default" value="Submit" />
+            </form>
+    </div>
+</div>
+
+{% endblock %}
+{% block piedipagina %}{% endblock %}

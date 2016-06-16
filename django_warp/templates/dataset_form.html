@@ -1,13 +1,136 @@
 {% extends 'warp_base.html' %}
 {% load staticfiles %}
+{% load l10n %}
 {% comment %} {% endcomment %}
 
 {% block custom_style_link %}{% endblock %}
 {% block custom_style_inline %}
-.form-control {font-family:monospace;!important;}
+.form-control {font-family:monospace;!important;font-size:1.0em;!important;}
 {% endblock %}
-{% block custom_js %}{% endblock %}
-{% block onload %}{% endblock %}
+{% block custom_js %}
+<script type="text/javascript" src="/static/warp/js/ol.js"></script>
+<script src="/static/warp/js/ol3-layerswitcher.js"></script>
+<script src="/static/warp/js/proj4.js"></script>
+<script src="http://epsg.io/{{ form.epsg.value }}.js"></script>
+<script type="text/javascript">
+{% localize off %}
+var targetExtent = [{{ form.extentLeft.value }}, {{ form.extentBottom.value }}, {{ form.extentRight.value }}, {{ form.extentTop.value }}];
+var leftBottom = [{{ form.extentLeft.value }},{{ form.extentBottom.value }}] 
+var rightTop = [{{ form.extentRight.value }},{{ form.extentTop.value }}] 
+{% endlocalize %}
+
+var targetProjection;
+var noInit = false;
+
+{% comment %}
+{% if form.epsg.value = 3857 or form.epsg.value = 4326 %}
+var targetProjection = 'EPSG:{{ form.epsg.value }}';
+{% else %}
+var targetProjection = new ol.proj.Projection({
+  code: 'EPSG:{{ form.epsg.value }}',
+  // The extent is used to determine zoom level 0. Recommended values for a
+  // projection's validity extent can be found at http://epsg.io/.
+  extent: targetExtent,
+  //units: 'm'
+});
+ol.proj.addProjection(targetProjection);
+{% endif %}
+{% endcomment %}
+
+$(document).ready(function() {
+
+    jQuery.loadScript = function (url, callback) {
+        jQuery.ajax({
+            url: url,
+            dataType: 'script',
+            success: callback,
+            async: false
+        });
+    }
+    
+    targetProjection = 'EPSG:'+$("#id_epsg").val().toString();
+
+    if (proj4.defs(targetProjection) == undefined){
+        console.log ("Invalid projection");
+    } else {
+        console.log(proj4.defs(targetProjection));
+        var leftBottom_wgs84 = ol.proj.toLonLat(leftBottom, targetProjection);
+        var rightTop_wgs84 = ol.proj.toLonLat(rightTop, targetProjection);
+        $("#id_lonMin").val(leftBottom_wgs84[0]);
+        $("#id_latMin").val(leftBottom_wgs84[1]);
+        $("#id_lonMax").val(rightTop_wgs84[0]);
+        $("#id_latMax").val(rightTop_wgs84[1]);
+    }
+
+    $('#update_button').click(function(eventObj) {
+        $("#update").val("1");
+        $('#submit').trigger('click');
+    })
+
+    $('#dataset').submit(function(eventObj) {
+        
+        console.log ("reprojection");
+        
+        $.loadScript("http://epsg.io/"+$("#id_epsg").val().toString()+".js", function(){
+            console.log("loaded projection "+$("#id_epsg").val().toString());
+        })
+        
+        targetProjection = 'EPSG:'+$("#id_epsg").val().toString();
+        var leftBottom_new = ol.proj.fromLonLat([parseFloat($("#id_lonMin").val()),parseFloat($("#id_latMin").val())], targetProjection); //parseFloat()
+        var rightTop_new = ol.proj.fromLonLat([parseFloat($("#id_lonMax").val()),parseFloat($("#id_latMax").val())], targetProjection); //parseFloat()
+        $("#id_extentLeft").val(leftBottom_new[0]);
+        $("#id_extentBottom").val(leftBottom_new[1]);
+        $("#id_extentRight").val(rightTop_new[0]);
+        $("#id_extentTop").val(rightTop_new[1]);
+
+    })
+
+});
+
+function onMoveEnd(evt) {
+        if (noInit) {
+            var map = evt.map;
+            var new_ext = map.getView().calculateExtent(map.getSize());
+            var leftBottom_wgs84 = ol.proj.toLonLat([new_ext[0],new_ext[1]], targetProjection);
+            var rightTop_wgs84 = ol.proj.toLonLat([new_ext[2],new_ext[3]], targetProjection);
+            $("#id_lonMin").val(leftBottom_wgs84[0]);
+            $("#id_latMin").val(leftBottom_wgs84[1]);
+            $("#id_lonMax").val(rightTop_wgs84[0]);
+            $("#id_latMax").val(rightTop_wgs84[1]);
+        } else {
+            noInit = true
+        }
+    };
+
+function init(){
+
+    map = new ol.Map({
+      layers: [
+      
+{{ form.baselayer.value | escape | safe }}
+
+      ],
+      controls: ol.control.defaults().extend([
+        new ol.control.MousePosition(),
+        new ol.control.OverviewMap()
+      ]),
+      target: 'map',
+      view: new ol.View({
+        projection: targetProjection,
+        center: ol.extent.getCenter(targetExtent),
+        zoom: 2
+      })
+    });
+
+    map.getView().fit(targetExtent, map.getSize());
+
+    map.on('moveend', onMoveEnd);
+
+}
+
+</script>
+{% endblock %}
+{% block onload %} onload="init()"{% endblock %}
 {% block titolo %}DATASET {% if idx %}{{idx}}{% endif %} {% if form %}{{form.name.value}}{% endif %} {% endblock %}
 {% block menu %}
 <li>
@@ -20,10 +143,42 @@
 <div class="container"> 
     <div class="col-md-12">
             <form id="dataset" action="/warp/{% if idx %}editdataset/{{idx}}/{% else %}newdataset/{% endif %}" method="post" class="input-sm">
-              {% csrf_token %}
-              {{form}}
-              </br>
-              <input type="submit" class="btn btn-default" value="Submit" />
+
+                <div class="panel-body">
+                    <div class="panel panel-default col-md-4">
+                        <div class="panel-body">
+                              {% csrf_token %}
+                              <label for="id_name">Dataset name:</label>
+                              {{form.name}}
+                              <label for="id_epsg">Coordinate system code (epsg):</label>
+                              {{form.epsg}}
+                              {{form.extentLeft}}
+                              {{form.extentBottom}}
+                              {{form.extentRight}}
+                              {{form.extentTop}}
+                              <input type="text" class="hidden" id="id_lonMin" name="username" value="">
+                              <input type="text" class="hidden" id="id_latMin" name="username" value="">
+                              <input type="text" class="hidden" id="id_lonMax" name="username" value="">
+                              <input type="text" class="hidden" id="id_latMax" name="username" value="">
+                              <label for="id_baselayer">Baselayers (Openlayers 3 javascript definitions):</label>
+                              {{form.baselayer}}
+                              <input type="text" class="hidden" id="update" name="update" value="0">
+                              </br>
+                              <input id="submit" type="submit" class="btn btn-default" value="Submit" />
+                              </br>
+                        </div>
+                    </div>
+                
+                    <div class="panel panel-default col-md-8">
+                      <div class="panel-body">
+                          <div style="width:100%;height:600px" id="map"></div>
+                          </br>
+                          <a id="update_button" class="btn btn-default" href="#" role="button">Update Form</a> 
+                          </br>
+                      </div>
+                    </div>
+                </div>
+
             </form>
     </div>
 </div>

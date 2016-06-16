@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.conf import settings
-from .models import mappeGeoreferenziate, datasets
+from .models import rasterMaps, datasets
 from .forms import UploadImmagineSorgenteForm, DatasetForm
 from django.http import JsonResponse,HttpResponse,HttpResponseRedirect
 from django.contrib.gis.gdal import GDALRaster
@@ -28,7 +28,7 @@ def handle_uploaded_file(f,pk):
 def removableDSList():
     removable = []
     for d in datasets.objects.all():
-        georefs = mappeGeoreferenziate.objects.filter(dataset=d)
+        georefs = rasterMaps.objects.filter(dataset=d)
         if not georefs:
             removable.append(d.pk)
     return removable
@@ -37,8 +37,7 @@ def removableDSList():
 
 
 def dataset_list (request,datasetId):
-    #dataset_items = mappeGeoreferenziate.objects.filter(dataset=dataset).order_by('pk')
-    dataset_items = mappeGeoreferenziate.objects.all().order_by('pk')
+    dataset_items = rasterMaps.objects.all().order_by('pk')
     dataset_obj = datasets.objects.get(pk=datasetId)
     
     #reorder datasets to have TRASH as last item
@@ -63,14 +62,10 @@ def datasets_list (request, alert=None):
 @login_required(login_url='/warp/login/')
 @user_passes_test(lambda u: u.is_staff)
 def remove_dataset (request, dataset):
-    print ("DATASET req_id:",dataset, file=sys.stderr)
     dataset_obj = datasets.objects.get(pk=dataset)
     dataset_name = dataset_obj.name
-    print ("DATASET NAME:",dataset_name, file=sys.stderr)
     #test if void or not
-    georefs = mappeGeoreferenziate.objects.filter(dataset=dataset_obj)
-    
-    print ("GEOREFS:",georefs, file=sys.stderr)
+    georefs = rasterMaps.objects.filter(dataset=dataset_obj)
         
     if dataset_name == "__TRASH":
         empty_trash()
@@ -85,7 +80,6 @@ def remove_dataset (request, dataset):
             message = "Dataset %s successfully removed" % dataset_name
             className = "alert-success"
             dataset_obj.delete()
-    print ("MESSAGE:",message, file=sys.stderr)
     response = datasets_list (request, alert={'class':className, 'message': message })
     return response
 
@@ -93,35 +87,47 @@ def remove_dataset (request, dataset):
 @user_passes_test(lambda u: u.is_superuser)
 def empty_trash():
     trash_dataset = get_trash_dataset() 
-    trashed_images = mappeGeoreferenziate.objects.filter(dataset = trash_dataset)
+    trashed_images = rasterMaps.objects.filter(dataset = trash_dataset)
     for image in trashed_images:
         image.delete()
 
 @login_required(login_url='/warp/login/')
 @user_passes_test(lambda u: u.is_staff)
 def dataset_form (request, datasetId = None):
-    print ("Dataset:",datasetId, file=sys.stderr)
     if request.method == 'POST':
         form = DatasetForm(request.POST)
-        print ("Form:",form, file=sys.stderr)
         if form.is_valid():
             if datasetId:
                 datasetItem = datasets.objects.get(pk=datasetId)
             else:
                 datasetItem = datasets()
-            print ("Form is valid:", file=sys.stderr)
+
+            try:
+                referenced = rasterMaps.objects.get(dataset=datasetId)
+            except:
+                referenced = None
+
+            if not referenced:
+                datasetItem.epsg = form.data['epsg']
+                
+            if str(datasetItem.epsg) == str(form.data['epsg']):
+                
+                print ("extent",form.data['extentLeft'], file=sys.stderr)
+                datasetItem.baselayer = form.data['baselayer']
+                datasetItem.extentLeft = form.data['extentLeft']
+                datasetItem.extentBottom = form.data['extentBottom']
+                datasetItem.extentRight = form.data['extentRight']
+                datasetItem.extentTop = form.data['extentTop']
+
             datasetItem.name = form.data['name']
-            datasetItem.epsg = form.data['epsg']
-            datasetItem.baselayer = form.data['baselayer']
-            datasetItem.extentLeft = form.data['extentLeft']
-            datasetItem.extentBottom = form.data['extentBottom']
-            datasetItem.extentRight = form.data['extentRight']
-            datasetItem.extentTop = form.data['extentTop']
             datasetItem.slug = slugify (form.data['name'])
             datasetItem.save()
-            return HttpResponseRedirect('/warp/')
+            print ("UPDATE",request.POST.get('update', ''), file=sys.stderr)
+            if request.POST.get('update', '') == '1':
+                return HttpResponseRedirect('/warp/editdataset/'+str(datasetId)+'/')
+            else:
+                return HttpResponseRedirect('/warp/')
         else:
-            print ("Form is invalid:", file=sys.stderr)
             return render(request, 'dataset_form.html', {'idx': datasetId, 'form': form})
                 
     if datasetId:
@@ -129,6 +135,7 @@ def dataset_form (request, datasetId = None):
         form = DatasetForm(instance = editDataset)
     else:
         form = DatasetForm()
+    
     return render(request, 'dataset_form.html', {'idx': datasetId, 'form': form})
 
 def get_trash_dataset():
@@ -140,20 +147,17 @@ def get_trash_dataset():
 
 def dataset_view (request, datasetId = None):
     dataset = datasets.objects.get(pk=datasetId)
-    dataset_imgs = mappeGeoreferenziate.objects.filter(dataset=datasetId)
+    dataset_imgs = rasterMaps.objects.filter(dataset=datasetId)
     map_images = []
-    print ("MAP IMAGES:", file=sys.stderr)
     for map_image in dataset_imgs:
         if map_image.webimg:
             raster = GDALRaster(settings.MEDIA_ROOT + str(map_image.webimg), write=False)
-            print (map_image.webimg, file=sys.stderr)
             map_images.append({
                 'titolo': map_image.titolo,
                 'url':settings.MEDIA_URL + str(map_image.webimg)+"?dum="+str(randint(1000000,9999999)),
                 'size':[map_image.webimg.width,map_image.webimg.height],
                 'extent':[raster.extent[0],raster.extent[1],raster.extent[2],raster.extent[3]]
             })
-    print (map_images, file=sys.stderr)
     return render(request, 'dataset_view.html', {'idx': datasetId, 'images': map_images, 'dataset':dataset, 'settings':settings})
     
 
@@ -170,7 +174,7 @@ def trash_image(request, idx = None):
         trash_dataset.extentRight = 0
         trash_dataset.extentTop = 0
         trash_dataset.save()
-    trash_item = mappeGeoreferenziate.objects.get(pk=idx)
+    trash_item = rasterMaps.objects.get(pk=idx)
     if not trash_item.datasetRecover:
         trash_item.datasetRecover = trash_item.dataset
         oldDataset = trash_item.dataset.pk
@@ -183,7 +187,7 @@ def trash_image(request, idx = None):
 @login_required(login_url='/warp/login/')
 def recover_image(request, idx = None):
     try:
-        recover_image = mappeGeoreferenziate.objects.get(pk=idx)
+        recover_image = rasterMaps.objects.get(pk=idx)
     except recover_image.DoesNotExist:
         recover_image = None
     if recover_image:
@@ -196,7 +200,7 @@ def recover_image(request, idx = None):
 
 def get_vrt(datasetId):
     dataset = datasets.objects.get(pk=datasetId)
-    dataset_imgs = mappeGeoreferenziate.objects.filter(dataset=dataset)
+    dataset_imgs = rasterMaps.objects.filter(dataset=dataset)
     vrt_files = ""
     for img in dataset_imgs:
         vrt_files += '"'+settings.MEDIA_ROOT + str(img.destinazione) + '" '
@@ -205,7 +209,7 @@ def get_vrt(datasetId):
     #coverage = GDALRaster(vrtFileName, write=False)
     #dataset.coverage = GDALRaster(vrtFileName, write=False)
     #dataset.save()
-    print (buildVrtCmd, file=sys.stderr)
+    #print (buildVrtCmd, file=sys.stderr)
     #print ("SIZE/SRID:", dataset.coverage.width, dataset.coverage.height,dataset.coverage.srs.srid, file=sys.stderr)
     #os.system(buildVrtCmd)
 
@@ -224,17 +228,14 @@ def georef_start(request, datasetId = None, idx = None):
     source = None
     errore = None
     if request.method == 'POST': # crea un nuovo file da editare
-        #print (request.FILES, file=sys.stderr)
         form = UploadImmagineSorgenteForm(request.POST, request.FILES)
-        nuova_mappa = mappeGeoreferenziate()
+        nuova_mappa = rasterMaps()
         nuova_mappa.titolo = request.POST.get('titolo', '')
         nuova_mappa.note = request.POST.get('note', '')
         nuova_mappa.dataset = datasets.objects.get(pk=datasetId)
         nuova_mappa.save()
         nuova_mappa.sorgente = handle_uploaded_file(request.FILES['sorgente'],nuova_mappa.pk)
         nuova_mappa.save()
-        #urlSorgente = settings.MEDIA_URL+nuova_mappa.sorgente
-        print ("\n",nuova_mappa, file=sys.stderr)  
         source = {
                 'item': nuova_mappa,
                 'img': nuova_mappa.sorgente,
@@ -251,7 +252,7 @@ def georef_start(request, datasetId = None, idx = None):
             }
     else: #edita file esistente
         if idx:
-            georefItem = mappeGeoreferenziate.objects.get(pk=idx)
+            georefItem = rasterMaps.objects.get(pk=idx)
             datasetId =  georefItem.dataset.pk
             
             #check if not yet georeferenced
@@ -283,9 +284,8 @@ def georef_start(request, datasetId = None, idx = None):
 
 @login_required(login_url='/warp/login/')
 def georef_print(request,idx):
-    #print (request.FILES, file=sys.stderr)
     
-    georefItem = mappeGeoreferenziate.objects.get(pk=idx)
+    georefItem = rasterMaps.objects.get(pk=idx)
     destinazioneImg = str(georefItem.destinazione)
     openlayersImg = str(georefItem.webimg)
     destinazioneFile = settings.MEDIA_ROOT + destinazioneImg
@@ -314,10 +314,13 @@ def georef_print(request,idx):
 @login_required(login_url='/warp/login/')
 def georef_apply(request):
     """
-    gestisce fase2 in json
+    do georef
     """
     
     def execute (cmd):
+        """
+        execute command and write log
+        """
         os.system('echo "%s<br/>\n" >> "%s"  2>&1' % (cmd,logCmdFilename))
         os.system('%s >> "%s"  2>&1' % (cmd,logCmdFilename))
         os.system('echo "<br/>\n<br/>\n" >> "%s"  2>&1' % (logCmdFilename))
@@ -328,7 +331,7 @@ def georef_apply(request):
             postData = json.loads(body_unicode)
             id = json.loads(postData['id'])
             alpha = json.loads(postData['alpha']) == 1
-            georefItem = mappeGeoreferenziate.objects.get(pk=id)
+            georefItem = rasterMaps.objects.get(pk=id)
             sorgenteImg = str(georefItem.sorgente)
             destinazioneImg = sorgenteImg[:10] + 'd' + sorgenteImg[11:-4] + '.tif'
             tempImg = sorgenteImg[:10] + 't' + sorgenteImg[11:-4] + '.tif'
@@ -348,7 +351,6 @@ def georef_apply(request):
             logCmdUrl = settings.MEDIA_URL + logCmd
             
             risposta = { 'valida': None, 'esito':logCmdUrl,'geotiff':"", 'estensione': [], 'dest_img': ""}
-            #logCmdFile = open(logCmdFilename, 'wt')
             
             controlli_sorgente_string = json.loads(postData['controlli_sorgente'])
             controlli_destinazione_string = json.loads(postData['controlli_destinazione'])
@@ -359,34 +361,23 @@ def georef_apply(request):
                 
             controlli_sorgente = json.loads(controlli_sorgente_string)
             controlli_destinazione = json.loads(controlli_destinazione_string)
-                
-            
-            #print ('\nPost Data: "%s"' % postData , file=sys.stderr)
+
             features_sorgente = controlli_sorgente['features']
             features_destinazione = controlli_destinazione['features']
-            print ('\ncontrolli_sorgente Data: "%s"' % json.loads(postData['controlli_sorgente']) , file=sys.stderr)
-            print ('\ncontrolli_destinazione Data: "%s"' % json.loads(postData['controlli_destinazione']) , file=sys.stderr)
-            print ('\nclip poligono Data: "%s"' % clip_poligono_string , file=sys.stderr)
             num_controlli = len(features_sorgente)
             correlazione = []
             for i in range(0,num_controlli):
                 correlazione.append([[],[]])
             
-            #correlazione[3][0] = [ 1,2]
-            #correlazione[3][1] = [ 3,4]
-            
             for feature in features_sorgente:
                 coordinate = feature['geometry']['coordinates']
                 indice = feature['properties']['indice'] - 1
-                print (indice, coordinate , file=sys.stderr)
                 correlazione[indice][0] = coordinate
             
             for feature in features_destinazione:
                 coordinate = feature['geometry']['coordinates']
                 indice = feature['properties']['indice'] - 1
                 correlazione[indice][1] = coordinate
-            
-            print ("\nCORRELAZIONE:\n",correlazione , file=sys.stderr)
             
             sorgenteFile = settings.MEDIA_ROOT + sorgenteImg
             tempFile = settings.MEDIA_ROOT + tempImg
@@ -398,14 +389,7 @@ def georef_apply(request):
             if os.path.isfile(tempFile):
                 os.remove(tempFile)
             
-            print ("\n",sorgenteFile, file=sys.stderr)
-            print ("\n",tempFile, file=sys.stderr)
-            print ("\n",destinazioneFile, file=sys.stderr)
-            print ("\n",openlayersFile, file=sys.stderr)
-            print ("\n",sorgenteClipFile, file=sys.stderr)
-            print ("\n",destinazioneClipFile, file=sys.stderr)
-            print ("\n",logCmdUrl, file=sys.stderr)
-            print ("\n",logCmdFilename, file=sys.stderr)
+            #print ("\n",sorgenteFile, file=sys.stderr)
             
             if clip_poligono_string:
                 # scrivi file json con il poligono di clip
@@ -422,7 +406,6 @@ def georef_apply(request):
             
             sorgenteRaster = GDALRaster(sorgenteFile, write=False)
             numero_bande = len(sorgenteRaster.bands)
-            print ("\nBANDE",numero_bande, file=sys.stderr)
             #if numero_bande == 1:
             #    bande = '-b 1' #genera errore Band 2 requested, but only bands 1 to 1 available.
             #elif numero_bande == 2:
@@ -455,7 +438,6 @@ def georef_apply(request):
                 except:
                     pass
                 ogr_clip_cmd = 'ogr2ogr -a_srs EPSG:%s -f "GeoJSON" %s %s "%s" "%s"' % (georefItem.dataset.epsg, gcpStringClip, metodo, destinazioneClipFile, sorgenteClipFile)
-                print ("\ncmd",ogr_clip_cmd, file=sys.stderr)
                 execute(ogr_clip_cmd)
                 #post_gdal_warp = 'gdalwarp -r cubic -co COMPRESS=JPEG -co JPEG_QUALITY=75 -overwrite -cutline "%s" -crop_to_cutline "%s" "%s"' % (destinazioneClipFile, destinazioneFile, logCmdFilename)
                 clString = '-cutline "%s" -crop_to_cutline' % destinazioneClipFile
@@ -468,11 +450,7 @@ def georef_apply(request):
             else:
                 nodata = ''
             
-            gdal_warp_cmd = 'gdalwarp -r cubic %s %s -co COMPRESS=JPEG -co JPEG_QUALITY=75 %s -dstalpha -overwrite -t_srs EPSG:%s "%s" "%s" ' % ( nodata, metodo, clString, georefItem.dataset.epsg, tempFile, destinazioneFile) # 
-            
-            
-            print ("\n",gdal_translate_cmd, file=sys.stderr)
-            print ("\n",gdal_warp_cmd, file=sys.stderr)
+            gdal_warp_cmd = 'gdalwarp -r cubic %s %s -co COMPRESS=JPEG -co JPEG_QUALITY=75 %s -dstalpha -overwrite -t_srs EPSG:%s "%s" "%s" ' % ( nodata, metodo, clString, georefItem.dataset.epsg, tempFile, destinazioneFile) #
             
             try:
                 execute(gdal_translate_cmd)
@@ -493,7 +471,6 @@ def georef_apply(request):
                 georefItem.destinazione = destinazioneImg
                 destinazioneRaster = GDALRaster(destinazioneFile, write=False)
                 gdal_translate_cmd = 'gdal_translate -of PNG -scale -co worldfile=yes "%s" "%s" ' % ( destinazioneFile, openlayersFile)
-                print ("\n",gdal_translate_cmd, file=sys.stderr) 
                 execute(gdal_translate_cmd)
                 georefItem.destinazione = destinazioneImg
                 georefItem.webimg = openlayersImg

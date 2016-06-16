@@ -16,10 +16,10 @@ class datasets(models.Model):
     name = models.CharField(max_length=50)
     slug = models.CharField(max_length=50,blank=True)
     epsg = models.IntegerField(default = '3857')
-    extentLeft = models.FloatField(default = '-20000000.00')
-    extentBottom = models.FloatField(default = '-10000000.00')
-    extentRight = models.FloatField(default = '20000000.00')
-    extentTop = models.FloatField(default = '+20000000.00')
+    extentLeft = models.FloatField(default = '-18000000.00')
+    extentBottom = models.FloatField(default = '-8000000.00')
+    extentRight = models.FloatField(default = '2000000.00')
+    extentTop = models.FloatField(default = '15000000.00')
     baselayer = models.TextField(default = 'new ol.layer.Tile({\n    source: new ol.source.OSM()\n}),',blank=True)
     #coverage = models.RasterField(blank=True,null=True)
 
@@ -31,7 +31,7 @@ class datasets(models.Model):
         return self.name
 
 
-class mappeGeoreferenziate(models.Model):
+class rasterMaps(models.Model):
     titolo = models.CharField(max_length=50)
     slug = models.CharField(max_length=50,blank=True)
     note = models.TextField(blank=True)
@@ -59,7 +59,7 @@ class mappeGeoreferenziate(models.Model):
     def __str__(self):  
         return self.titolo
 
-@receiver(models.signals.post_delete, sender=mappeGeoreferenziate)
+@receiver(models.signals.post_delete, sender=rasterMaps)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
     """Deletes file from filesystem
     when corresponding `mappeGeoreferenziate` object is deleted.

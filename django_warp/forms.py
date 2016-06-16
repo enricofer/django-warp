@@ -2,6 +2,7 @@ from django import forms
 from django.forms import ModelForm
 from .models import datasets
 
+
 class UploadImmagineSorgenteForm(forms.Form):
     titolo = forms.CharField(max_length=50)
     note = forms.CharField(max_length=250)
@@ -14,7 +15,10 @@ class BaseForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super(BaseForm, self).__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            field.widget.attrs['class'] = 'form-control'
+            if field_name[:6] == 'extent':
+                field.widget.attrs['class'] = 'hidden'
+            else:
+                field.widget.attrs['class'] = 'form-control'
 
 class DatasetForm(BaseForm):
     class Meta:
