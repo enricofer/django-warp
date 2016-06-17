@@ -51,3 +51,19 @@ USAGE
 * Run server and browse to ``[yourserver address]\warp\`` and login with a valid site credentials
 * First create a dataset with epsg code, extents and baselayer
 * Then upload images and define correlation and clipping to do georeferencing
+
+=====
+SCREENSHOTS
+=====
+
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/datasets.png
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/dataset_form_3857.png
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/dataset_form_3003.png
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/image_load.png
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/dataset_images.png
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/correlate_01.png
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/correlate_02.png
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/correlate_04.png
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/correlate_05.png
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/overview.png
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/print.png
