@@ -32,8 +32,14 @@ $(document).ready(function() {
                 }
                 break;
                 case "remove":{
-                    bootbox.confirm("Do you really want to empty trash? " + event.target.parentElement.parentElement.id.toString(), function(result) {
+                    bootbox.confirm("Do you really want to remove dataset? " + event.target.parentElement.parentElement.id.toString(), function(result) {
                         if (result) { window.location = "/warp/removedataset/" + event.target.parentElement.parentElement.id+"/"; }
+                    });
+                }
+                break;
+                case "trash":{
+                    bootbox.confirm("Do you really want to empty trash? " + event.target.parentElement.parentElement.id.toString(), function(result) {
+                        if (result) { window.location = "/warp/emptytrash/"; }
                     });
                 }
                 break;
@@ -82,15 +88,15 @@ $(document).ready(function() {
               </thead>
               <tbody>
                   {% for item in items %}
-                  <tr id="{{item.pk}}">
-                    <th scope="row">{{item.pk}}</th>
+                  <tr id="{{item.pk}}" {% if item.name == "__TRASH" %}class="active"{% endif %}>
+                    <th scope="row">{% if item.name != "__TRASH" %}{{item.pk}}{% endif %}</th>
                     <td>{{item.name}}</td>
-                    <td>{{item.epsg}}</td>
-                    <td>{% localize off %}{{item.extentLeft}}/{{item.extentBottom}}/{{item.extentRight}}/{{item.extentTop}}{% endlocalize %}</td>
+                    <td>{% if item.name != "__TRASH" %}{{item.epsg}}{% endif %}</td>
+                    <td>{% if item.name != "__TRASH" %}{% localize off %}{{item.extentLeft}}/{{item.extentBottom}}/{{item.extentRight}}/{{item.extentTop}}{% endlocalize %}{% endif %}</td>
                     <td>
                          {% if item.name == "__TRASH" %}
                              <span id="none" class="glyphicon glyphicon-none" aria-hidden="true"></span>
-                             <span id="remove" class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+                             <span id="trash" class="ops glyphicon glyphicon-trash" aria-hidden="true"></span>
                              
                          {% else %}
                                 <span id="view" class="ops glyphicon glyphicon-eye-open" aria-hidden="true"></span>

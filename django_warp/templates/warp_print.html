@@ -236,11 +236,6 @@ function init(){
               size: {{target.size}},
               projection: targetProjection,
               imageExtent: MapExtent,
-              attributions: [new ol.Attribution({
-                html: '&copy; ' +
-                    '<a href="http://www.padovanet.it' +
-                    'Comune di Padova, Settore Urbanistica</a>'
-              })],
               crossOrigin: null 
             })
           });
@@ -282,7 +277,7 @@ function init(){
     map_print = new ol.Map({
       interactions: ol.interaction.defaults().extend([new app.Drag()]),
       layers: [
-          wms_base,
+{{ dataset.baselayer | escape | safe  }}
           georef_overlay,
           frame_overlay
       ],
@@ -405,7 +400,7 @@ function init(){
 </script>
 {% endblock %}
 {% block onload %} onload="init()"{% endblock %}
-{% block titolo %}Stampa mappa georeferenziata {% if source %}{{source.fileName}}{% endif %}{% endblock %}
+{% block titolo %}Print georeferenced image {% if source %}{{source.fileName}}{% endif %}{% endblock %}
 {% block menu %}{% endblock %}
 {% block contenuto %}
 
@@ -413,6 +408,7 @@ function init(){
 <div class="container"> 
     <div class="col-md-12">
         <div class="panel panel-default">
+            <div class="panel-body">
             <form id="printOptions" class="form-inline input-sm">
               <div class="form-group">
                   <label for="format">Page size</label>
@@ -433,11 +429,14 @@ function init(){
                   <label>Scale 1:</label>
                   <input id="scale" class="form-control" value="2000"></input>
               </div>
+            <div class="form-group">
+                <a class="btn btn-default" id="esporta_pdf" role="button">Print pdf</a>
+                <a class="btn btn-default" id="esporta_png" download="map.png" role="button">Export image</a>
+            </div>
             </form>
-            <a class="btn btn-default" id="esporta_pdf" role="button">Stampa pdf</a>
-            <a class="btn btn-default" id="esporta_png" download="map.png" role="button">Esporta immagine</a>
+            </div>
             <div class="pull-right">
-                <a id="messaggio_errore"  class="hidden btn btn-warning" role="button">Errore di caricamento</a>
+                <a id="messaggio_errore"  class="hidden btn btn-warning" role="button">Loading Error</a>
                 <div class="hidden" id="progress"></div>
             </div>
             <div class="panel-body">

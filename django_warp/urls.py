@@ -11,6 +11,7 @@ urlpatterns = [
     url(r'^(\d+)/$', views.dataset_list, name='dataset_list'),
     url(r'^newdataset/$', views.dataset_form, name='dataset_new'),
     url(r'^removedataset/(\d+)/$', views.remove_dataset, name='dataset_remove'),
+    url(r'^emptytrash/$', views.empty_trash, name='empty_trash'),
     url(r'^vrtdataset/(\d+)/$', views.vrt_dataset, name='dataset_remove'),
     url(r'^editdataset/(?P<datasetId>\d+)/$', views.dataset_form, name='dataset_form'),
     url(r'^viewdataset/(?P<datasetId>\d+)/$', views.dataset_view, name='dataset_view'),

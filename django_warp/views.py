@@ -56,7 +56,16 @@ def dataset_list (request,datasetId):
 @login_required(login_url='/warp/login/')
 @user_passes_test(lambda u: u.is_staff)
 def datasets_list (request, alert=None):
-    datasets_items = datasets.objects.all().order_by('pk')
+    datasets_list = datasets.objects.all().order_by('pk')
+    datasets_items = []
+    trash_item = None
+    for dataset in datasets_list:
+        if dataset.name != "__TRASH":
+            datasets_items.append(dataset)
+        else:
+            trash_item = dataset
+    if trash_item:
+        datasets_items.append(trash_item)
     return render(request, 'datasets_list.html', {'items': datasets_items, 'alert': alert, 'removable':removableDSList()})
 
 @login_required(login_url='/warp/login/')
@@ -85,11 +94,12 @@ def remove_dataset (request, dataset):
 
 @login_required(login_url='/warp/login/')
 @user_passes_test(lambda u: u.is_superuser)
-def empty_trash():
+def empty_trash(request):
     trash_dataset = get_trash_dataset() 
     trashed_images = rasterMaps.objects.filter(dataset = trash_dataset)
     for image in trashed_images:
         image.delete()
+    return HttpResponseRedirect('/warp/')
 
 @login_required(login_url='/warp/login/')
 @user_passes_test(lambda u: u.is_staff)
