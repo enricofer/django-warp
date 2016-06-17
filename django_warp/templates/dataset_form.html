@@ -5,7 +5,7 @@
 
 {% block custom_style_link %}{% endblock %}
 {% block custom_style_inline %}
-.form-control {font-family:monospace;!important;font-size:1.0em;!important;}
+.form-control {font-family:monospace;!important;font-size:0.9em;!important;}
 {% endblock %}
 {% block custom_js %}
 <script type="text/javascript" src="/static/warp/js/ol.js"></script>
@@ -150,11 +150,15 @@ function init(){
                               {{form.extentBottom}}
                               {{form.extentRight}}
                               {{form.extentTop}}
-                              <input type="text" class="hidden" id="id_lonMin" name="username" value="">
-                              <input type="text" class="hidden" id="id_latMin" name="username" value="">
-                              <input type="text" class="hidden" id="id_lonMax" name="username" value="">
-                              <input type="text" class="hidden" id="id_latMax" name="username" value="">
-                              <label for="id_baselayer">Baselayers (Openlayers 3 javascript definitions):</label>
+                              <label for="lonMin">Minimum longitude:</label>
+                              <input type="text" class="form-control" id="id_lonMin" name="lonMin" value="">
+                              <label for="latMin">Minimum latitude:</label>
+                              <input type="text" class="form-control" id="id_latMin" name="latMin" value="">
+                              <label for="lonMax">Maximum longitude:</label>
+                              <input type="text" class="form-control" id="id_lonMax" name="lonMax" value="">
+                              <label for="latMax">Maximum latitude:</label>
+                              <input type="text" class="form-control" id="id_latMax" name="latMax" value="">
+                              <label for="id_baselayer">Baselayer <br/> (Openlayers 3 valid javascript layer object):</label>
                               {{form.baselayer}}
                               <input type="text" class="hidden" id="update" name="update" value="0">
                               </br>
@@ -162,11 +166,14 @@ function init(){
                               </br>
                         </div>
                     </div>
-                
-                    <div class="panel panel-default col-md-8">
-                      <div class="panel-body">
-                          <div style="width:100%;height:600px" id="map"></div>
-                      </div>
+                    <div class="col-md-8">
+                        <div class="panel panel-default">
+                          <div class="panel-heading"><strong>Dataset extension</strong></div>
+                          <div class="panel-body">
+                              
+                              <div style="width:100%;height:600px" id="map"></div>
+                          </div>
+                        </div>
                     </div>
                 </div>
 

@@ -68,7 +68,7 @@ $(document).ready(function() {
                     </div>
                     <div class="panel-collapse collapse {% if dataset.pk == choice %}in{% endif %}" role="tabpanel" aria-labelledby="heading{{dataset.pk}}" id="table{{dataset.pk}}">
                         <div class="panel-body">
-                            {% if dataset.name != '__TRASH' %}<a type="button" class="btn btn-default" href="/warp/newimage/{{dataset.pk}}/">Nuova immagine</a>{% endif %}
+                            {% if dataset.name != '__TRASH' %}<a type="button" class="btn btn-default" href="/warp/newimage/{{dataset.pk}}/">New image</a>{% endif %}
                             <table class="table table-hover">
                               <caption></caption>
                               <thead>
@@ -100,7 +100,7 @@ $(document).ready(function() {
                                   {% endfor %}
                               </tbody>
                             </table>
-                            {% if dataset.name != '__TRASH' %}<a type="button" class="btn btn-default" href="/warp/newimage/{{dataset.pk}}/">Nuova immagine</a>{% endif %}
+                            {% if dataset.name != '__TRASH' %}<a type="button" class="btn btn-default" href="/warp/newimage/{{dataset.pk}}/">New image</a>{% endif %}
                         </div>
                     </div>
                 </div>

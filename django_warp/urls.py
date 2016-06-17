@@ -4,8 +4,9 @@ from . import views
 from httpproxy.views import HttpProxy
 #from revproxy.views import ProxyView
 from django.conf import settings
+import django.contrib.auth.views
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^$', views.datasets_list, name='datasets_list'),
     url(r'^(\d+)/$', views.dataset_list, name='dataset_list'),
     url(r'^newdataset/$', views.dataset_form, name='dataset_new'),
@@ -21,8 +22,8 @@ urlpatterns = patterns('',
     url(r'^print/(\d+)/$', views.georef_print, name='georef_print'),
     url(r'^proxy/(?P<url>.*)', HttpProxy.as_view(base_url="")),
     #url(r'^proxy/(?P<path>.*)', ProxyView.as_view(upstream='https://')),
-    url(r'^login/', 'django.contrib.auth.views.login'),
-    url(r'^logout/', 'django.contrib.auth.views.logout'),
+    url(r'^login/', django.contrib.auth.views.login),
+    url(r'^logout/', django.contrib.auth.views.logout),
     #url(r'raster/', include('raster.urls')),
     #url(r'^wms/$', testWmsView.as_view(), name='wms'),
-)
+]
