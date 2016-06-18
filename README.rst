@@ -66,24 +66,46 @@ SCREENSHOTS
 =====
 
 available datasets
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/datasets.png
+
 dataset setting, default to EPSG:3857 projection (web mercator) and OSM baselayer 
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/dataset_form_3857.png
+
 dataset custom settins: EPSG:3003 projection (web mercator) with ArcGis Mapserver baselayer 
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/dataset_form_3003.png
+
 loading a new image
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/image_load.png
+
 correlated available images in datasets
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/dataset_images.png
+
 correlating source image on the left on target map on the right
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/correlate_01.png
+
 couple of correlation point on source image and target map
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/correlate_02.png
+
 clipping source image
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/correlate_04.png
+
 succesful correlation
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/correlate_05.png
+
 dataset overview with georeferenced images mosaic
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/overview.png
+
 printing a correlated image
+
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/print.png
+
