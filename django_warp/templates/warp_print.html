@@ -320,7 +320,7 @@ function init(){
     var exportElement = document.getElementById('esporta_pdf');
 
     exportElement.addEventListener('click', function(e) {
-      console.log("CICCIO!");
+      console.log('START');
       var view_size = map_print.getSize()
       var view_extent = map_print.getView().calculateExtent(view_size)
       if (exportElement.className.indexOf('disabled') > -1) {
@@ -391,7 +391,7 @@ function init(){
       map_print.renderSync();
       
       
-      console.log('FINE1');
+      console.log('END');
 
     }, false);
 

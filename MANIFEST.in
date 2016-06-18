@@ -1,6 +1,17 @@
 include LICENSE
 include README.rst
-recursive-include django-warp/static *
-recursive-include django-warp/templates *
-recursive-include django-warp/templatetags *
+recursive-include django_warp/static *
+recursive-include django_warp/templates *
+recursive-exclude django_warp/templates/bak *
+recursive-include django_warp/templatetags *
+recursive-include django_warp/migrations *
+recursive-exclude warp_test *
+include django_warp/admin.py
+include django_warp/apps.py
+include django_warp/forms.py
+include django_warp/__init__.py
+include django_warp/models.py
+include django_warp/tests.py
+include django_warp/urls.py
+include django_warp/views.py
 
