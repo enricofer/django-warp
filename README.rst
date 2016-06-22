@@ -1,6 +1,26 @@
 ==============
-Django Warp
+DJANGO WARP
 ==============
+
+.. image:: https://img.shields.io/pypi/v/django-warp.svg?style=plastic
+    :target: https://pypi.python.org/pypi/django-warp/
+    :alt: Latest Version
+
+.. image:: https://img.shields.io/pypi/dm/django-warp.svg?style=plastic
+    :target: https://pypi.python.org/pypi/django-warp/
+    :alt: Downloads
+
+.. image:: https://img.shields.io/pypi/l/django-warp.svg?style=plastic
+    :target: https://pypi.python.org/pypi/django-warp/
+    :alt: License
+
+.. image:: https://img.shields.io/pypi/wheel/django-warp.svg?style=plastic
+    :target: https://pypi.python.org/pypi/django-warp/
+    :alt: Wheel Status
+
+.. image:: https://img.shields.io/pypi/pyversions/django-warp.svg?style=plastic
+    :target: https://pypi.python.org/pypi/django-warp/
+    :alt: Supported Python Versions
 
 Django Warp provides a reusable app for raster maps georeferencing.
 
