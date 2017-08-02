@@ -279,6 +279,7 @@ def georef_start(request, datasetId = None, idx = None):
                 'item': georefItem,
                 'img': georefItem.sorgente, 
                 'id': georefItem.pk,
+                'fileName': os.path.basename(str(georefItem.destinazione)),
                 'target': None if not georefItem.webimg else settings.MEDIA_URL + str(georefItem.webimg)+"?dum="+str(randint(1000000,9999999)),
                 'download': None if not georefItem.destinazione else settings.MEDIA_URL + str(georefItem.destinazione)+"?dum="+str(randint(1000000,9999999)),
                 'targetSize': size,
@@ -434,7 +435,7 @@ def georef_apply(request):
             else:
                 expand = ''
             
-            gdal_translate_cmd = 'gdal_translate %s %s -of GTiff %s "%s" "%s"' % (bande, expand, gcpString, sorgenteFile, tempFile)
+            gdal_translate_cmd = 'gdal_translate -a_srs EPSG:%s %s %s -of GTiff %s "%s" "%s"' % (georefItem.dataset.epsg, bande, expand, gcpString, sorgenteFile, tempFile)
             
             metodo = "-tps"
             #metodo = "-order 2"

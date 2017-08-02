@@ -31,7 +31,7 @@
     height: 100% !important;
 }
 
-htlm body { 
+htlm body {
     height: 100% !important;
 }
 
@@ -52,9 +52,10 @@ var localProjection = new ol.proj.Projection({
 
 var indiceControllo = 1;
 var controlli = [];
+var syncEnable = true;
 
 {% localize off %}
-var targetExtent = [{{ source.dataset.extentLeft }}, {{ source.dataset.extentBottom }}, {{ source.dataset.extentRight }}, {{ source.dataset.extentTop }}]; 
+var targetExtent = [{{ source.dataset.extentLeft }}, {{ source.dataset.extentBottom }}, {{ source.dataset.extentRight }}, {{ source.dataset.extentTop }}];
 {% endlocalize %}
 
 {% if source.target %}
@@ -116,7 +117,7 @@ function modalLog(){
                     url: messaggio_errore,
                     async: false
                  }).responseText;
-                 
+
     var popupTemplate =
       '<div class="modal fade">' +
       '  <div class="modal-dialog">' +
@@ -136,7 +137,7 @@ function modalLog(){
       '</div>';
 
     $(popupTemplate).modal()
-    
+
 };
 
 $.ajaxSetup({
@@ -159,17 +160,17 @@ $(document).ready(function(){
         $('#esito').addClass("hidden");
         $('#download').addClass("hidden");
         $('#print').addClass("hidden");
-        
+
         var sorgente_features = controllo_sorgente.getSource().getFeatures();
         var sorgente_json = geoJson_convertitore.writeFeatures(sorgente_features);
         var sorgente_output = JSON.stringify(sorgente_json);
         $(this).append("<input type='hidden' name='controlli_sorgente' value='"+sorgente_output+"' /> ");
-        
+
         var destinazione_features = controllo_destinazione.getSource().getFeatures();
         var destinazione_json = geoJson_convertitore.writeFeatures(destinazione_features);
         var destinazione_output = JSON.stringify(destinazione_json);
         $(this).append("<input type='hidden' name='controlli_destinazione' value='"+destinazione_output+"' /> ");
-        
+
         if (clipSourceOverlay.getSource().getFeatures().length > 0){
           var clip_features = clipSourceOverlay.getSource().getFeatures();
           var clip_json = geoJson_convertitore.writeFeatures(clip_features);
@@ -191,10 +192,10 @@ $(document).ready(function(){
             dataForm[input.attr("name")] = input.val();
             delete dataForm["undefined"];
         });
-        
+
         console.log(dataForm);
         $('#progress').removeClass("hidden");
-        
+
         $.ajax({
             csrfmiddlewaretoken: '{{ csrf_token }}',
             url: '/warp/apply/',
@@ -243,15 +244,15 @@ $(document).ready(function(){
             }
         });
     });
-    
+
     $( '#aggiungiControllo' ).click( function(event) {
         aggiungiControllo();
     });
-    
+
     $( '#rimuoviControllo' ).click( function(event) {
         rimuoviControllo();
     });
-    
+
     $( '#resetControlli' ).click( function(event) {
         if ($("#clip").hasClass( "active" )){
             resetClip();
@@ -259,25 +260,9 @@ $(document).ready(function(){
             resetControlli();
         }
     });
-    
+
     $( '#saveControlli' ).click( function(event) {
-        
-        var sorgente_features = controllo_sorgente.getSource().getFeatures();
-        var sorgente_json = JSON.parse(geoJson_convertitore.writeFeatures(sorgente_features));
-        var destinazione_features = controllo_destinazione.getSource().getFeatures();
-        var destinazione_json = JSON.parse(geoJson_convertitore.writeFeatures(destinazione_features));
-        console.log (destinazione_json);
-        
-        var correlazione = [];
-        for (var i = 0; i < destinazione_json.features.length; i++) {
-            correlazione.push([[],[]]);
-        }
-        console.log (correlazione);
-        for (var i = 0; i < destinazione_json.features.length; i++) {
-            correlazione[sorgente_json.features[i].properties.indice-1][0] = sorgente_json.features[i].geometry.coordinates;
-            correlazione[destinazione_json.features[i].properties.indice-1][1] = destinazione_json.features[i].geometry.coordinates;
-        }
-        console.log (correlazione);
+        var correlazione = getCorrelationMatrix()
         $("<a />", {
             "download": "correlazione.json",
             "href" : "data:application/json," + encodeURIComponent(JSON.stringify(correlazione, null, '\t'))
@@ -286,7 +271,7 @@ $(document).ready(function(){
              $(this).remove()
             })[0].click()
         });
-    
+
     $( '#loadControlli' ).click( function(event) {
         if ($("#upload").hasClass( "hidden" )){
             $("#upload").removeClass("hidden");
@@ -294,7 +279,7 @@ $(document).ready(function(){
             $("#upload").addClass("hidden");
         }
     });
-    
+
     $( '#upload' ).change( function(event) {
           var reader = new FileReader();
 
@@ -307,7 +292,7 @@ $(document).ready(function(){
 
           reader.readAsText(event.target.files[0]);$("upload").removeClass("hidden");
     });
-    
+
     $( '#clip' ).click( function(event) {
         if ($("#clip").hasClass( "active" )){
             map_sorgente.removeInteraction(drawInteraction);
@@ -317,38 +302,38 @@ $(document).ready(function(){
             map_sorgente.addInteraction(modifyInteraction);
         }
     });
-    
+
     $( '#errore' ).click( function(event) {
         modalLog()
     });
-    
+
     $( '#esito' ).click( function(event) {
         modalLog()
     });
-    
-    $('#download').attr({target: '_blank', 
+
+    $('#download').attr({target: '_blank',
                     href  : 'http://localhost/directory/file.pdf'});
-                    
+
     $('#alpha').on('click', function() {
         $(this).val(this.checked ? 1 : 0);
         $(this).next().text($(this).val());
     });
-    
+
     console.log('doc ready');
     //$('body').addClass("fill");
     $('#map_sorgente').height($(window).height()-200);
     $('#map_destinazione').height($(window).height()-200);
-    
+
     $( '#test' ).click( function(event){
     map_destinazione.getView().fit(targetExtent, map_destinazione.getSize());
     });
-    
+
     $( '#test2' ).click( function(event){
 {% if source.target %}
     map_destinazione.getView().fit({{source.targetExtent}}, map_destinazione.getSize());
 {% endif %}
     });
-    
+
 });
 
 window.app = {};
@@ -404,8 +389,8 @@ app.Drag.prototype.handleDownEvent = function(evt) {
   var feature = map.forEachFeatureAtPixel(evt.pixel,
       function(feature, layer) {
         return feature;
-      }, 
-      null, 
+      },
+      null,
       function(layer) {
         return layer === controllo_sorgente || layer === controllo_destinazione;
       });
@@ -422,14 +407,14 @@ app.Drag.prototype.handleDownEvent = function(evt) {
  * @param {ol.MapBrowserEvent} evt Map browser event.
  */
 app.Drag.prototype.handleDragEvent = function(evt) {
-  
+
   var map = evt.map;
 
   var feature = map.forEachFeatureAtPixel(evt.pixel,
       function(feature, layer) {
         return feature;
-      }, 
-      null, 
+      },
+      null,
       function(layer) {
         return layer === controllo_sorgente || layer === controllo_destinazione;
       });
@@ -454,8 +439,8 @@ app.Drag.prototype.handleMoveEvent = function(evt) {
     var feature = map.forEachFeatureAtPixel(evt.pixel,
         function(feature, layer) {
           return feature;
-      }, 
-      null, 
+      },
+      null,
       function(layer) {
         return layer === controllo_sorgente || layer === controllo_destinazione;
         });
@@ -486,9 +471,10 @@ var controlInteractions = ol.interaction.defaults().extend([new app.Drag()]);
 var drawInteraction, modifyInteraction, clipInteractions;
 
 function enableDownloadPrint(id, geotiff){
+    var filename = geotiff.split('/').pop().split('#')[0].split('?')[0];
     $('#download').removeClass("hidden");
     $('#download').attr("href", geotiff);
-    $('#download').attr("download", "immagine.geotiff");
+    $('#download').attr("download", filename);
     $('#print').removeClass("hidden");
     $('#print').attr("href", "/warp/print/"+id+"/");
     $('#errore').addClass("hidden");
@@ -498,7 +484,7 @@ function aggiungiControllo(){
     var newControlSorgente = new ol.Feature({
             geometry: new ol.geom.Point(map_sorgente.getView().getCenter()),
             indice: controlli.length+1
-        }); 
+        });
     var newControlDestinazione = new ol.Feature({
             geometry: new ol.geom.Point(map_destinazione.getView().getCenter()),
             indice: controlli.length+1
@@ -512,7 +498,7 @@ function caricaControllo(coord){
     var newControlSorgente = new ol.Feature({
             geometry: new ol.geom.Point(coord[0]),
             indice: controlli.length+1
-        }); 
+        });
     var newControlDestinazione = new ol.Feature({
             geometry: new ol.geom.Point(coord[1]),
             indice: controlli.length+1
@@ -529,8 +515,8 @@ function rimuoviControllo(){
             controllo_destinazione.getSource().removeFeature(ultimoControllo[1]);
             controlli.pop();
             return true
-        } else { 
-            return false 
+        } else {
+            return false
         }
     }
 
@@ -540,17 +526,17 @@ function resetControlli(){
             ctrl = rimuoviControllo();
         }
     }
-    
+
 function resetClip(){
       clipSourceFeatures = new ol.Collection();
       clipSourceOverlay.setSource(new ol.source.Vector({features: clipSourceFeatures}));
       initInteractions(clipSourceFeatures);
-      
+
       try {
         map_sorgente.removeInteraction(drawInteraction);
         map_sorgente.removeInteraction(modifyInteraction);
       } catch(e){}
-      
+
       map_sorgente.addInteraction(drawInteraction);
       map_sorgente.addInteraction(modifyInteraction);
       clipTargetFeatures = new ol.Collection();
@@ -564,7 +550,7 @@ function caricaPuntiCorrelazione(listaPunti) {
         }
         extent = controllo_destinazione.getSource().getExtent();
         {% if source.target %}
-        map_destinazione.getView().fit(extent, map_destinazione.getSize()); 
+        map_destinazione.getView().fit(extent, map_destinazione.getSize());
         {% endif %}
     }
 
@@ -573,7 +559,7 @@ function initInteractions(features){
             features: features,
             type: /** @type {ol.geom.GeometryType} */ ("Polygon")
         });
-        
+
         modifyInteraction = new ol.interaction.Modify({
             features: features,
             // the SHIFT key must be pressed to delete vertices, so
@@ -585,6 +571,86 @@ function initInteractions(features){
             }
         });
     }
+
+//extent: An array of numbers representing an extent: [minx, miny, maxx, maxy]
+
+
+
+function getCorrelationMatrix(){
+    var sorgente_features = controllo_sorgente.getSource().getFeatures();
+    var sorgente_json = JSON.parse(geoJson_convertitore.writeFeatures(sorgente_features));
+    var destinazione_features = controllo_destinazione.getSource().getFeatures();
+    var destinazione_json = JSON.parse(geoJson_convertitore.writeFeatures(destinazione_features));
+    //console.log (destinazione_json);
+
+    var correlazione = [];
+    for (var i = 0; i < destinazione_json.features.length; i++) {
+        correlazione.push([[],[]]);
+    }
+    //console.log (correlazione);
+    for (var i = 0; i < destinazione_json.features.length; i++) {
+        correlazione[sorgente_json.features[i].properties.indice-1][0] = sorgente_json.features[i].geometry.coordinates;
+        correlazione[destinazione_json.features[i].properties.indice-1][1] = destinazione_json.features[i].geometry.coordinates;
+    }
+    //console.log (correlazione);
+    return correlazione;
+}
+
+function translateExtent(sourceExtent,direction){
+        var correlazione = getCorrelationMatrix();
+        console.log(correlazione[0][direction[0]][0],correlazione[0][direction[0]][1]);
+        console.log(correlazione[0][direction[1]][0],correlazione[0][direction[1]][1]);
+        var sourceXMinDiff = correlazione[0][direction[0]][0] - sourceExtent[0];
+        var sourceXMaxDiff = sourceExtent[2] - correlazione[0][direction[0]][0];
+        var sourceYMinDiff = correlazione[0][direction[0]][1] - sourceExtent[1];
+        var sourceYMaxDiff = sourceExtent[3] - correlazione[0][direction[0]][1];
+        var sourceDeltaX = correlazione[1][direction[0]][0] - correlazione[0][direction[0]][0];
+        var sourceDeltaY = correlazione[1][direction[0]][1] - correlazione[0][direction[0]][1];
+        var destDeltaX = correlazione[1][direction[1]][0] - correlazione[0][direction[1]][0];
+        var destDeltaY = correlazione[1][direction[1]][1] - correlazione[0][direction[1]][1];
+        var ratioDeltaX = destDeltaX/sourceDeltaX;
+        var ratioDeltaY = destDeltaY/sourceDeltaY;
+        var destXMinDiff = sourceXMinDiff * ratioDeltaX;
+        var destXMaxDiff = sourceXMaxDiff * ratioDeltaX;
+        var destYMinDiff = sourceYMinDiff * ratioDeltaY;
+        var destYMaxDiff = sourceYMaxDiff * ratioDeltaY;
+        var destExtent = [correlazione[0][direction[1]][0]-destXMinDiff, correlazione[0][direction[1]][1]-destYMinDiff, correlazione[0][direction[1]][0]+destXMaxDiff, correlazione[0][direction[1]][1]+destYMaxDiff]
+        console.log (sourceExtent);
+        console.log (destExtent);
+        return destExtent;
+}
+
+function syncSourceView() {
+        if (controllo_sorgente.getSource().getFeatures().length > 1 && syncEnable && document.getElementById('autopan').checked){
+            console.log("syncSourceview",syncEnable);
+            var dest_extent = map_destinazione.getView().calculateExtent(map_destinazione.getSize());
+            var source_extent = map_sorgente.getView().calculateExtent(map_sorgente.getSize());
+            console.log("PRE",dest_extent,source_extent)
+            map_sorgente.getView().fit(translateExtent(dest_extent,[1,0]), map_sorgente.getSize());
+            syncEnable = false;
+            var dest_extent = map_destinazione.getView().calculateExtent(map_destinazione.getSize());
+            var source_extent = map_sorgente.getView().calculateExtent(map_sorgente.getSize());
+            console.log("POST",dest_extent,source_extent)
+            setTimeout(function(){ syncEnable = true; }, 200);
+        }
+}
+
+function syncDestView() {
+        if (controllo_sorgente.getSource().getFeatures().length > 1 && syncEnable && document.getElementById('autopan').checked){
+            console.log("syncDestview",syncEnable);
+            var dest_extent = map_destinazione.getView().calculateExtent(map_destinazione.getSize());
+            var source_extent = map_sorgente.getView().calculateExtent(map_sorgente.getSize());
+            console.log("PRE",dest_extent,source_extent)
+            console.log(source_extent,translateExtent(source_extent,[0,1]));
+            map_destinazione.getView().fit(translateExtent(source_extent,[0,1]), map_destinazione.getSize());
+            syncEnable = false;
+            var dest_extent = map_destinazione.getView().calculateExtent(map_destinazione.getSize());
+            var source_extent = map_sorgente.getView().calculateExtent(map_sorgente.getSize());
+            console.log("POST",dest_extent,source_extent)
+            setTimeout(function(){ syncEnable = true; }, 200);
+        }
+
+}
 
 function init(){
 
@@ -610,7 +676,7 @@ function init(){
           }),
       style: controlStyle
     })
-    
+
     controllo_destinazione =  new ol.layer.Vector({
       source: new ol.source.Vector({
             projection: targetProjection
@@ -626,7 +692,7 @@ function init(){
     clipSourceFeatures = new ol.Collection( new ol.format.GeoJSON().readFeatures(geojsonObject));//, {
         //featureProjection: localProjection
     //});
-    
+
     {% else %}
     clipSourceFeatures = new ol.Collection();
     {% endif %}
@@ -648,7 +714,7 @@ function init(){
         })
       })
     });
-      
+
     initInteractions(clipSourceFeatures);{% if not source.clipSorgente %}{% endif %}
 
     map_sorgente = new ol.Map({
@@ -676,7 +742,7 @@ function init(){
         zoom: 2
       })
     });
-    
+
 
     //clip destinazione overlay
       {% if source.clipDestinazione %}
@@ -706,11 +772,11 @@ function init(){
           })
         })
       });
-      
+
     console.log(clipTargetOverlay.getExtent());
 
 
-    georef_overlay = 
+    georef_overlay =
           new ol.layer.Image({
             title: 'georeferenced image',
 {% if source.target %}
@@ -757,15 +823,19 @@ function init(){
     enableDownloadPrint({{source.id}}, "{{source.download}}");
 {% endif %}
 
+    map_destinazione.on('moveend', syncSourceView);
+    map_sorgente.on('moveend', syncDestView);
+    map_destinazione.on('zoomend', syncSourceView);
+    map_sorgente.on('zoomend', syncDestView);
+
     var layerSwitcher = new ol.control.LayerSwitcher({
         tipLabel: 'Legend' // Optional label for button
     });
     map_destinazione.addControl(layerSwitcher);
-    
+
 {% if source.correlazione %}
     caricaPuntiCorrelazione(JSON.parse('{{source.correlazione}}'));
 {% endif %}
-
 
 
 }
@@ -787,7 +857,7 @@ function init(){
 
 
 {% if not source %}
-<div id="master" class="container fill"> 
+<div id="master" class="container fill">
     <div class="row-fluid fill">
             {% if errore %}<div class="alert alert-warning"><strong>ERROR:</strong>{{errore}}</div>{% endif %}
             <form id="fase1" role="form" action="/warp/newimage/{{ dataset }}/" method="post"  enctype="multipart/form-data">
@@ -807,14 +877,14 @@ function init(){
   </div>
 </div>
 {% else %}
-<div id="master" class="container-fluid fill"> 
+<div id="master" class="container-fluid fill">
     <div class="row-fluid fill">
 
         <div class="col-md-12 fill">
             {% if errore %}<div class="alert alert-warning"><strong>ERROR:</strong>{{errore}}</div>{% endif %}
-                
+
                     <!-- <div class="panel panel-default fill"> -->
-                        
+
                             <form id="fase2" class="form-inline" role="form" method="post">
                                 <input type="hidden" name="id" value="{{source.id}}">
                                 <a class="btn btn-default" id="aggiungiControllo" role="button">Add</a>
@@ -836,20 +906,22 @@ function init(){
                                     <button type="submit" class="btn btn-primary">Georeference</button>
                                 </div>
                             </form>
-                    
-                    
+
+
                     <div class="panel-body">
                         <div class="panel panel-default col-md-6">
                             <div class="panel-body">
                                 <div id="map_sorgente" class=""></div>
                             </div>
+
                         </div>
-                    
+
                         <div class="panel panel-default col-md-6">
                             <div class="panel-body">
                                 <div id="map_destinazione"></div>
                             </div>
                         </div>
+                        <label class="checkbox-inline"><input id="autopan" name="alpha" type="checkbox" value="0">Auto pan/zoom</label>
                     </div>
                 <!-- </div> -->
         </div>
