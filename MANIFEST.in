@@ -14,4 +14,3 @@ include django_warp/models.py
 include django_warp/tests.py
 include django_warp/urls.py
 include django_warp/views.py
-

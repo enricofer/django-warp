@@ -2,11 +2,13 @@ from django.shortcuts import render
 from django.conf import settings
 from .models import rasterMaps, datasets
 from .forms import UploadImmagineSorgenteForm, DatasetForm
-from django.http import JsonResponse,HttpResponse,HttpResponseRedirect
+from django.http import JsonResponse,HttpResponse,HttpResponseRedirect,FileResponse
 from django.contrib.gis.gdal import GDALRaster
 from django.contrib.auth.decorators import login_required, user_passes_test
 from random import randint
 from slugify import slugify
+from zipfile import ZipFile
+from io import BytesIO
 import json
 import sys
 import os
@@ -208,7 +210,7 @@ def recover_image(request, idx = None):
         response = dataset_list(request, trash_dataset.pk)
         return response
 
-def get_vrt(datasetId):
+def build_vrt(datasetId):
     dataset = datasets.objects.get(pk=datasetId)
     dataset_imgs = rasterMaps.objects.filter(dataset=dataset)
     vrt_files = ""
@@ -216,6 +218,8 @@ def get_vrt(datasetId):
         vrt_files += '"'+settings.MEDIA_ROOT + str(img.destinazione) + '" '
     vrtFileName = os.path.join(settings.MEDIA_ROOT,'warp',dataset.name) + '.vrt'
     buildVrtCmd = 'gdalbuildvrt -overwrite "%s" %s' % (vrtFileName, vrt_files)
+    os.system(buildVrtCmd)   
+    return vrtFileName
     #coverage = GDALRaster(vrtFileName, write=False)
     #dataset.coverage = GDALRaster(vrtFileName, write=False)
     #dataset.save()
@@ -223,10 +227,29 @@ def get_vrt(datasetId):
     #print ("SIZE/SRID:", dataset.coverage.width, dataset.coverage.height,dataset.coverage.srs.srid, file=sys.stderr)
     #os.system(buildVrtCmd)
 
+@login_required(login_url='/warp/login/')
+def download_dataset(request, datasetId):
+    dataset = datasets.objects.get(pk=datasetId)
+    dataset_imgs = rasterMaps.objects.filter(dataset=dataset)
+    zipMemory = BytesIO()
+    zip = ZipFile(zipMemory, 'w')
+    for img in dataset_imgs:
+        zip.write(os.path.join(settings.MEDIA_ROOT,str(img.destinazione)),str(img.destinazione))
+        
+    # fix for Linux zip files read in Windows
+    for filename in zip.filelist:
+        filename.create_system = 0
+    
+    zip.write(build_vrt(datasetId),os.path.join('warp',dataset.name+'.vrt'))
+        
+    zip.close()
+    zipMemory.seek(0)
+    
+    return FileResponse(zipMemory,content_type='application/zip')
 
 @login_required(login_url='/warp/login/')
 def vrt_dataset(request, dataset):
-    get_vrt( dataset )
+    build_vrt( dataset )
     response = dataset_list(request, dataset)
     return response
 
