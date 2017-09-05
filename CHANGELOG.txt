@@ -1,0 +1,9 @@
+DJANGO WARP CHANGELOG
+
+v 0.3
+Main Release to http://pypi.python.org/
+
+v 0.4
+new feature - download zipped collection of dataset georefs tiff along with .vrt file
+new feature - auto pan/zoom on target/source view change
+can't clip raster issue fixed

@@ -16,7 +16,7 @@
 <script type="text/javascript">
 
 {% localize off %}
-var targetExtent = [{{ dataset.extentLeft }}, {{ dataset.extentBottom }}, {{ dataset.extentRight }}, {{ dataset.extentTop }}]; 
+var targetExtent = [{{ dataset.extentLeft }}, {{ dataset.extentBottom }}, {{ dataset.extentRight }}, {{ dataset.extentTop }}];
 {% endlocalize %}
 
 var map;
@@ -45,12 +45,13 @@ function init(){
 
     map = new ol.Map({
       layers: [
-      
+
 {{ dataset.baselayer | escape | safe }}
 
 {% for image in images %}
       new ol.layer.Image({
             title: '{{ image.titolo}}',
+            visible: false,
             source: new ol.source.ImageStatic({
               url: '{{ image.url }}',
               size: {{image.size}},
@@ -59,6 +60,16 @@ function init(){
             })
           }),
 {% endfor %}
+      new ol.layer.Image({
+            title: 'dataset {{idx}} coverage',
+            visible: true,
+            source: new ol.source.ImageWMS({
+              url: '/warp/export',
+              params: {'LAYERS': '{{idx}}'},
+              ratio: 1,
+              serverType: 'geoserver'
+            })
+          }),
       ],
       controls: ol.control.defaults().extend([
         //new ol.control.ScaleLine(),
@@ -107,7 +118,7 @@ function init(){
 {% endblock %}
 {% block contenuto %}
 
-<div class="container"> 
+<div class="container">
     <div class="col-md-12">
       <div class="panel panel-default">
               <div class="panel-body">
@@ -116,7 +127,7 @@ function init(){
       </div>
     </div>
 </div>
-<div class="container"> 
+<div class="container">
     <div id ="destinazioni" class="col-md-12">
         {{ table }}
     </div>

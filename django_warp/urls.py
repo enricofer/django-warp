@@ -23,6 +23,7 @@ urlpatterns = [
     url(r'^apply/$', views.georef_apply, name='georef_apply'),
     url(r'^print/(\d+)/$', views.georef_print, name='georef_print'),
     url(r'^proxy/(?P<url>.*)', HttpProxy.as_view(base_url="")),
+    url(r'^export/$', views.export, name='export'),
     #url(r'^proxy/(?P<path>.*)', ProxyView.as_view(upstream='https://')),
     url(r'^login/', django.contrib.auth.views.login),
     url(r'^logout/', django.contrib.auth.views.logout),

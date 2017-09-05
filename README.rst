@@ -63,6 +63,13 @@ Last stable version:
     pip install django-warp
 
 
+Development version:
+
+::
+
+    pip install django-warp
+
+
 =====
 USAGE
 =====
@@ -89,11 +96,11 @@ available datasets
 
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/datasets.png
 
-dataset setting, default to EPSG:3857 projection (web mercator) and OSM baselayer 
+dataset setting, default to EPSG:3857 projection (web mercator) and OSM baselayer
 
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/dataset_form_3857.png
 
-dataset custom settins: EPSG:3003 projection (web mercator) with ArcGis Mapserver baselayer 
+dataset custom settins: EPSG:3003 projection (web mercator) with ArcGis Mapserver baselayer
 
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/dataset_form_3003.png
 

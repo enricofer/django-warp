@@ -7,3 +7,4 @@ python-slugify
 django-imagekit
 git+https://github.com/geodesign/django-raster.git@master
 requests
+django-wms

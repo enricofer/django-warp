@@ -21,6 +21,7 @@ class datasets(models.Model):
     extentRight = models.FloatField(default = '2000000.00')
     extentTop = models.FloatField(default = '15000000.00')
     baselayer = models.TextField(default = 'new ol.layer.Tile({\n    source: new ol.source.OSM()\n}),',blank=True)
+    vrt = models.FileField(null=True,blank=True)
     #coverage = models.RasterField(blank=True,null=True)
 
     def publish(self):
