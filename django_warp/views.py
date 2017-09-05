@@ -192,7 +192,6 @@ def get_extent(raster):
     return ext
 
 def export(request):
-     print ("REQUEST", request, file=sys.stderr)
      if request.method == 'GET':
         par_request = request.GET.get('REQUEST', '')
         if par_request == 'GetMap':
@@ -201,7 +200,7 @@ def export(request):
                 par_crs = request.GET.get('CRS', '3857')
             else:
                 par_crs = request.GET.get('SRS', '3857')
-            par_transparent = request.GET.get('TRANSPARENT', 'false') == 'false'
+            par_transparent = request.GET.get('TRANSPARENT', 'false') == 'true'
             par_format = request.GET.get('FORMAT', 'image/jpeg')
             if par_format == 'image/jpeg':
                 gdal_format = 'JPEG'
@@ -209,14 +208,12 @@ def export(request):
                 gdal_format = 'PNG'
             par_width = int(request.GET.get('WIDTH', '150'))
             par_height = int(request.GET.get('HEIGHT', '100'))
-            par_bbox = json.loads("["+request.GET.get('BBOX', '1321231.353,5680267.231,1325565.223,5685717.022')+"]")
+            par_bbox = json.loads("["+request.GET.get('BBOX', '')+"]")
             par_dataset = int(request.GET.get('LAYERS', 0)) # specify dataset id in wms layers parameter
-            print ("PARAMS", par_request,par_version,par_format,par_width,par_height,par_bbox,par_dataset, file=sys.stderr)
             
             dataset = datasets.objects.get(pk=par_dataset)
             coverage = gdal.Open(os.path.join(settings.MEDIA_ROOT,dataset.vrt.name), gdalconst.GA_ReadOnly)
-            print ("COVERAGE", coverage.RasterXSize, coverage.RasterYSize, file=sys.stderr)
-            #rewarp = gdal.Warp('',coverage,format = 'MEM', srcSRS = 'EPSG:'+par_crs, dstSRS = 'EPSG:'+par_crs)
+            #print ("COVERAGE", coverage.RasterXSize, coverage.RasterYSize, file=sys.stderr)
             clipFile = os.path.join(settings.MEDIA_ROOT,'warp','wms',str(uuid.uuid4())+'.'+gdal_format.lower())
             
             try:
@@ -225,22 +222,23 @@ def export(request):
                 pass
                 
             projWinList = [par_bbox[0],par_bbox[3],par_bbox[2],par_bbox[1]] #reformat bounds in ulx,uly,lrx,lry format
-            clip = gdal.Translate(clipFile, coverage, format = gdal_format, projWin = projWinList)#, format = gdal_format, width = 400, height = 400), width = par_width, height = par_height
+            clip = gdal.Translate(clipFile, coverage, format = gdal_format, projWin = projWinList, width = par_width, height = par_height)#, format = gdal_format, width = 400, height = 400), width = par_width, height = par_height
+            if not clip: # catch GDAL_ERROR 1: b'IReadBlock and rebuild clip image without width and height
+                clip = gdal.Translate(clipFile, coverage, format = gdal_format, projWin = projWinList, noData = None)
             #warp = gdal.Warp(clipFile,clip,format = gdal_format,xRes = par_width, yRes = par_height )
-            print ("PROJWIN:", projWinList, file=sys.stderr)
-            print ("CLIP SIZE/SRID:", clip.RasterXSize, clip.RasterYSize, file=sys.stderr)
             
             img = Image.open(clipFile)
             img = img.resize((par_width,par_height), Image.ANTIALIAS)
+            img = img.convert('RGBA')
             
             if par_transparent:
                 datas = img.getdata()
                 newData = []
                 for item in datas:
-                    if item[0] == 255 and item[1] == 255 and item[2] == 255 and item[3] == 0:
-                        newData.append((255, 255, 255, 255))
+                    if item[0] == 255 and item[1] == 255 and item[2] == 255:
+                        newData.append((item[0], item[1], item[2], 0))
                     else:
-                        newData.append(item)
+                        newData.append((item[0], item[1], item[2], 255))
                 img.putdata(newData)
             
             img.save(clipFile)
@@ -248,37 +246,6 @@ def export(request):
             with open(clipFile, "rb") as f:
                 return HttpResponse(f.read(), content_type=par_format)
             
-            
-
-'''
-http://172.25.193.167:8880/warp/export/?request=GetMap&layers=9&crs=3857
-
-1315021.106,5681008.462,1720283.760,5028658.143 1321821.333,5685481.889,1724954.716,5031962.435
-vedere ol.source.ImageWMS
-
-1318729.201,5685639.304,1321898.280,5682542.158
-1323436.540,5684604.578,1325565.223,5685717.022
-1321231.353,5680267.231,1325565.223,5685717.022
-
-http://cartografia.comune.padova.it/arcgis/rest/services/topo/MapServer/export?
-dpi=96&
-transparent=true&
-format=png32&bbox=1319825.2102298914,5684457.229642503,1323174.107531724,5686523.418063391&bboxSR=102100&imageSR=102100&size=1402,865&layers=show:0&_ts=1504265107360&f=image
-
-http://172.25.193.167/cgi-bin/PUA/qgis_mapserv.fcgi?
-SERVICE=WMS&
-VERSION=1.3.0&
-REQUEST=GetMap&
-FORMAT=image/png&
-TRANSPARENT=true&
-layers=PUA&
-format=image/png&
-WIDTH=256&
-HEIGHT=256&
-CRS=EPSG:3003&
-STYLES=&
-BBOX=1729092.107421875,5033587.529296875,1729133.36328125,5033628.78515625
-'''
 
 @login_required(login_url='/warp/login/')
 def trash_image(request, idx = None):
@@ -324,7 +291,7 @@ def build_vrt(datasetId):
     for img in dataset_imgs:
         vrt_files += '"'+settings.MEDIA_ROOT + str(img.destinazione) + '" '
     vrtFileName = os.path.join(settings.MEDIA_ROOT,'warp',dataset.name) + '.vrt'
-    buildVrtCmd = 'gdalbuildvrt -overwrite "%s" %s' % (vrtFileName, vrt_files)
+    buildVrtCmd = 'gdalbuildvrt -hidenodata -overwrite "%s" %s' % (vrtFileName, vrt_files)
     os.system(buildVrtCmd) 
     dataset.vrt = os.path.relpath(vrtFileName,settings.MEDIA_ROOT)
     dataset.save()
@@ -594,7 +561,7 @@ def georef_apply(request):
             else:
                 nodata = ''
             
-            gdal_warp_cmd = 'gdalwarp -r cubic %s %s -co COMPRESS=JPEG -co JPEG_QUALITY=75 %s -dstalpha -overwrite -t_srs EPSG:%s "%s" "%s" ' % ( nodata, metodo, clString, georefItem.dataset.epsg, tempFile, destinazioneFile) #
+            gdal_warp_cmd = 'gdalwarp -r cubic %s %s -co COMPRESS=JPEG -co JPEG_QUALITY=75 %s -overwrite -t_srs EPSG:%s "%s" "%s" ' % ( nodata, metodo, clString, georefItem.dataset.epsg, tempFile, destinazioneFile) #
             
             try:
                 execute(gdal_translate_cmd)

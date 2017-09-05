@@ -67,6 +67,7 @@ var exex = {{source.targetExtent}};
 
 var map_sorgente, map_destinazione;
 var controllo_sorgente, controllo_destinazione;
+var coverage_control;
 var georef_overlay, clipSourceFeatures, clipSourceOverlay, clipTargetFeatures, clipTargetOverlay;
 var messaggio_errore
 
@@ -388,7 +389,9 @@ app.Drag.prototype.handleDownEvent = function(evt) {
 
   var feature = map.forEachFeatureAtPixel(evt.pixel,
       function(feature, layer) {
-        return feature;
+        if (feature.getGeometry().getType() == 'Point'){
+            return feature;
+        }
       },
       null,
       function(layer) {
@@ -412,10 +415,13 @@ app.Drag.prototype.handleDragEvent = function(evt) {
 
   var feature = map.forEachFeatureAtPixel(evt.pixel,
       function(feature, layer) {
-        return feature;
+        if (feature.getGeometry().getType() == 'Point'){
+            return feature;
+        }
       },
-      null,
+      //null,
       function(layer) {
+        console.log(layer.getProperties())
         return layer === controllo_sorgente || layer === controllo_destinazione;
       });
 
@@ -438,9 +444,11 @@ app.Drag.prototype.handleMoveEvent = function(evt) {
     var map = evt.map;
     var feature = map.forEachFeatureAtPixel(evt.pixel,
         function(feature, layer) {
-          return feature;
+          if (feature.getGeometry().getType() == 'Point'){
+            return feature;
+        }
       },
-      null,
+      //null,
       function(layer) {
         return layer === controllo_sorgente || layer === controllo_destinazione;
         });
@@ -792,6 +800,17 @@ function init(){
 {% endif %}
           });
 
+    coverage_control =
+          new ol.layer.Image({
+                title: 'dataset {{dataset}} coverage',
+                visible: false,
+                source: new ol.source.ImageWMS({
+                  url: '/warp/export',
+                  params: {'LAYERS': '{{dataset}}'},
+                  ratio: 1,
+                  serverType: 'geoserver'
+                })
+              }),
 
 
     map_destinazione = new ol.Map({
@@ -799,6 +818,7 @@ function init(){
       layers: [
 {{ source.dataset.baselayer | escape | safe }}
 
+          coverage_control,
           georef_overlay,
           clipTargetOverlay,
           controllo_destinazione

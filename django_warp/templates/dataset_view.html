@@ -62,7 +62,7 @@ function init(){
 {% endfor %}
       new ol.layer.Image({
             title: 'dataset {{idx}} coverage',
-            visible: true,
+            visible: false,
             source: new ol.source.ImageWMS({
               url: '/warp/export',
               params: {'LAYERS': '{{idx}}'},
