@@ -18,7 +18,8 @@ class BaseForm(ModelForm):
             if field_name[:6] == 'extent':
                 field.widget.attrs['class'] = 'hidden'
             else:
-                field.widget.attrs['class'] = 'form-control'
+                if field_name[:6] != 'transp':
+                    field.widget.attrs['class'] = 'form-control'
 
 class DatasetForm(BaseForm):
     class Meta:

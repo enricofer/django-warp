@@ -16,8 +16,8 @@
 <script type="text/javascript">
 {% localize off %}
 var targetExtent = [{{ form.extentLeft.value }}, {{ form.extentBottom.value }}, {{ form.extentRight.value }}, {{ form.extentTop.value }}];
-var leftBottom = [{{ form.extentLeft.value }},{{ form.extentBottom.value }}] 
-var rightTop = [{{ form.extentRight.value }},{{ form.extentTop.value }}] 
+var leftBottom = [{{ form.extentLeft.value }},{{ form.extentBottom.value }}]
+var rightTop = [{{ form.extentRight.value }},{{ form.extentTop.value }}]
 {% endlocalize %}
 
 var targetProjection;
@@ -45,7 +45,7 @@ ol.proj.addProjection(targetProjection);
 {% endcomment %}
 
 $(document).ready(function() {
-    
+
     targetProjection = 'EPSG:'+$("#id_epsg").val().toString();
 
     if (proj4.defs(targetProjection) == undefined){
@@ -66,9 +66,9 @@ $(document).ready(function() {
     })
 
     $('#dataset').submit(function(eventObj) {
-        
+
         console.log ("reprojection");
-        
+
         var newTargetProjection = 'EPSG:'+$("#id_epsg").val().toString();
         var leftBottom_new = ol.proj.fromLonLat([parseFloat($("#id_lonMin").val()),parseFloat($("#id_latMin").val())], newTargetProjection); //parseFloat()
         var rightTop_new = ol.proj.fromLonLat([parseFloat($("#id_lonMax").val()),parseFloat($("#id_latMax").val())], newTargetProjection); //parseFloat()
@@ -100,7 +100,7 @@ function init(){
 
     map = new ol.Map({
       layers: [
-      
+
 {{ form.baselayer.value | escape | safe }}
 
       ],
@@ -134,43 +134,63 @@ function init(){
 {% block contenuto %}
 
 
-<div class="container"> 
+<div class="container">
     <div class="col-md-12">
             <form id="dataset" action="/warp/{% if idx %}editdataset/{{idx}}/{% else %}newdataset/{% endif %}" method="post" class="input-sm">
 
                 <div class="panel-body">
                     <div class="panel panel-default col-md-4">
                         <div class="panel-body">
+                           <form>
                               {% csrf_token %}
+                            <div class="form-group">
                               <label for="id_name">Dataset name:</label>
                               {{form.name}}
+                            </div>
+                            <div class="form-group">
                               <label for="id_epsg">Coordinate system code (epsg):</label>
                               {{form.epsg}}
                               {{form.extentLeft}}
                               {{form.extentBottom}}
                               {{form.extentRight}}
                               {{form.extentTop}}
+                            </div>
+                            <div class="form-group">
                               <label for="lonMin">Minimum longitude:</label>
                               <input type="text" class="form-control" id="id_lonMin" name="lonMin" value="">
+                            </div>
+                            <div class="form-group">
                               <label for="latMin">Minimum latitude:</label>
                               <input type="text" class="form-control" id="id_latMin" name="latMin" value="">
+                            </div>
+                            <div class="form-group">
                               <label for="lonMax">Maximum longitude:</label>
                               <input type="text" class="form-control" id="id_lonMax" name="lonMax" value="">
+                            </div>
+                            <div class="form-group">
                               <label for="latMax">Maximum latitude:</label>
                               <input type="text" class="form-control" id="id_latMax" name="latMax" value="">
+                            </div>
+                            <div class="checkbox">
+                                <label class="checkbox-inline">
+                                {{form.transparency}}Force transparency on white background:</label>
+                            </div>
+                            <div class="form-group">
                               <label for="id_baselayer">Baselayer <br/> (Openlayers 3 valid javascript layer object):</label>
                               {{form.baselayer}}
+                            </div>
                               <input type="text" class="hidden" id="update" name="update" value="0">
                               </br>
                               <input id="submit" type="submit" class="btn btn-default" value="Submit" />
                               </br>
-                        </div>
+                            </form>
+                          </div>
                     </div>
                     <div class="col-md-8">
                         <div class="panel panel-default">
                           <div class="panel-heading"><strong>Dataset extension</strong></div>
                           <div class="panel-body">
-                              
+
                               <div style="width:100%;height:600px" id="map"></div>
                           </div>
                         </div>

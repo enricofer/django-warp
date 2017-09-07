@@ -35,6 +35,10 @@ $(document).ready(function() {
                     window.location = "/warp/download_dataset/"+event.target.parentElement.parentElement.id+"/";
                 }
                 break;
+                case "clone":{
+                    window.location = "/warp/clone_dataset/"+event.target.parentElement.parentElement.id+"/";
+                }
+                break;
                 case "remove":{
                     bootbox.confirm("Do you really want to remove dataset? " + event.target.parentElement.parentElement.id.toString(), function(result) {
                         if (result) { window.location = "/warp/removedataset/" + event.target.parentElement.parentElement.id+"/"; }
@@ -99,15 +103,16 @@ $(document).ready(function() {
                     <td>{% if item.name != "__TRASH" %}{% localize off %}{{item.extentLeft}}/{{item.extentBottom}}/{{item.extentRight}}/{{item.extentTop}}{% endlocalize %}{% endif %}</td>
                     <td>
                          {% if item.name == "__TRASH" %}
-                             <span id="trash" class="ops glyphicon glyphicon-trash" aria-hidden="true"></span>
+                             <span id="trash" class="ops glyphicon glyphicon-trash" aria-hidden="true" data-toggle="tooltip" title="Empty trash"></span>
                              <span id="none" class="glyphicon glyphicon-none" aria-hidden="true"></span>
 
                          {% else %}
-                                <span id="view" class="ops glyphicon glyphicon-eye-open" aria-hidden="true"></span>
-                                <span id="download" class="ops glyphicon glyphicon-download" aria-hidden="true"></span>
-                                <span id="edit" class="ops glyphicon glyphicon-edit" aria-hidden="true"></span>
+                                <span id="view" class="ops glyphicon glyphicon-eye-open" aria-hidden="true" data-toggle="tooltip" title="View dataset coverage"></span>
+                                <span id="download" class="ops glyphicon glyphicon-download" aria-hidden="true" data-toggle="tooltip" title="Download dataset coverage"></span>
+                                <span id="edit" class="ops glyphicon glyphicon-edit" aria-hidden="true" data-toggle="tooltip" title="Edit dataset"></span>
+                                <span id="clone" class="ops glyphicon glyphicon-duplicate" aria-hidden="true" data-toggle="tooltip" title="Clone dataset"></span>
                              {% if item.pk in removable %}
-                                <span id="remove" class="ops glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                <span id="remove" class="ops glyphicon glyphicon-remove" aria-hidden="true" data-toggle="tooltip" title="Remove dataset"></span>
                              {% else %}
                                 <span id="none" class="ops glyphicon glyphicon-none" aria-hidden="true"></span>
                              {% endif %}

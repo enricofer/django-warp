@@ -14,6 +14,7 @@ urlpatterns = [
     url(r'^emptytrash/$', views.empty_trash, name='empty_trash'),
     url(r'^vrtdataset/(\d+)/$', views.vrt_dataset, name='dataset_vrt'),
     url(r'^download_dataset/(\d+)/$', views.download_dataset, name='dataset_download'),
+    url(r'^clone_dataset/(\d+)/$', views.clone_dataset, name='dataset_clone'),
     url(r'^editdataset/(?P<datasetId>\d+)/$', views.dataset_form, name='dataset_form'),
     url(r'^viewdataset/(?P<datasetId>\d+)/$', views.dataset_view, name='dataset_view'),
     url(r'^newimage/(?P<datasetId>\d+)/$', views.georef_start, name='georef_new'),

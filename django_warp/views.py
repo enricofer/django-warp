@@ -75,6 +75,27 @@ def datasets_list (request, alert=None):
 
 @login_required(login_url='/warp/login/')
 @user_passes_test(lambda u: u.is_staff)
+def clone_dataset (request, dataset):
+    dataset_obj = datasets.objects.get(pk=dataset)
+    dataset_name = dataset_obj.name
+    clone_datasetItem = datasets()
+    clone_datasetItem.name = dataset_obj.name + '_cloned'
+    clone_datasetItem.slug = slugify(dataset_obj.name)
+    clone_datasetItem.epsg = dataset_obj.epsg
+    clone_datasetItem.extentLeft = dataset_obj.extentLeft
+    clone_datasetItem.extentBottom = dataset_obj.extentBottom
+    clone_datasetItem.extentRight = dataset_obj.extentRight
+    clone_datasetItem.extentTop = dataset_obj.extentTop
+    clone_datasetItem.baselayer = dataset_obj.baselayer
+    clone_datasetItem.vrt = ""
+    clone_datasetItem.transparency = dataset_obj.transparency
+    clone_datasetItem.save()
+    response = datasets_list(request)
+    return response
+
+
+@login_required(login_url='/warp/login/')
+@user_passes_test(lambda u: u.is_staff)
 def remove_dataset (request, dataset):
     dataset_obj = datasets.objects.get(pk=dataset)
     dataset_name = dataset_obj.name
@@ -133,6 +154,9 @@ def dataset_form (request, datasetId = None):
                 datasetItem.extentBottom = form.data['extentBottom']
                 datasetItem.extentRight = form.data['extentRight']
                 datasetItem.extentTop = form.data['extentTop']
+            print ("form", form.cleaned_data, file=sys.stderr)
+            print ("transparency", form.cleaned_data['transparency'], file=sys.stderr)
+            datasetItem.transparency = form.cleaned_data['transparency']
 
             datasetItem.name = form.data['name']
             datasetItem.slug = slugify (form.data['name'])
@@ -418,8 +442,8 @@ def georef_print(request,idx):
                 destinazioneRaster.height
             ]
         }
-        
-    return render(request, "warp_print.html", {"target": target,'dataset': georefItem.dataset,"settings": settings})
+    print_baselayer = georefItem.dataset.baselayer.replace("http://","/warp/proxy/http://").replace("https://","/warp/proxy/https://")
+    return render(request, "warp_print.html", {"target": target,'dataset': georefItem.dataset,"settings": settings, "print_baselayer":print_baselayer})
 
 
 @login_required(login_url='/warp/login/')

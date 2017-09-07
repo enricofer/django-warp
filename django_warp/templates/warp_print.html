@@ -6,6 +6,7 @@
 {% block custom_style_link %}
 <link rel="stylesheet" href="{{settings.STATIC_URL}}warp/css/ol.css" />
 <link rel="stylesheet" href="http://openlayers.org/en/v3.4.0/resources/layout.css" />
+<link rel="stylesheet" href="/static/warp/css/ol3-layerswitcher.css" />
 {% endblock %}
 {% block custom_style_inline %}
 
@@ -26,13 +27,14 @@
 {% block custom_js %}
 <script type="text/javascript" src="{{settings.STATIC_URL}}warp/js/ol.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.2.61/jspdf.min.js" type="text/javascript"></script>
+<script src="/static/warp/js/ol3-layerswitcher.js"></script>
 <script src="http://cdnjs.cloudflare.com/ajax/libs/proj4js/2.2.1/proj4.js"></script>
 <script src="http://epsg.io/{{ dataset.epsg }}.js"></script>
 <script type="text/javascript">
 
 var MapExtent = {{ target.extent }}
 {% localize off %}
-var targetExtent = [{{ dataset.extentLeft }}, {{ dataset.extentBottom }}, {{ dataset.extentRight }}, {{ dataset.extentTop }}]; 
+var targetExtent = [{{ dataset.extentLeft }}, {{ dataset.extentBottom }}, {{ dataset.extentRight }}, {{ dataset.extentTop }}];
 // PD [1716014, 5023919, 1737137, 5038662];
 {% endlocalize %}
 
@@ -98,7 +100,7 @@ $.ajaxSetup({
 
 
 $(document).ready(function(){
-    
+
     $( "#format" ).change(function() {
           draw_frame();
         });
@@ -114,7 +116,7 @@ window.app = {};
 var app = window.app;
 
 app.Drag = function() {
-  
+
   ol.interaction.Pointer.call(this, {
     handleDownEvent: app.Drag.prototype.handleDownEvent,
     handleDragEvent: app.Drag.prototype.handleDragEvent,
@@ -137,8 +139,8 @@ app.Drag.prototype.handleDownEvent = function(evt) {
   var feature = map.forEachFeatureAtPixel(evt.pixel,
       function(feature, layer) {
         return feature;
-      }, 
-      null, 
+      },
+      null,
       function(layer) {
         return layer === frame_overlay;
       });
@@ -156,8 +158,8 @@ app.Drag.prototype.handleDragEvent = function(evt) {
   var feature = map.forEachFeatureAtPixel(evt.pixel,
       function(feature, layer) {
         return feature;
-      }, 
-      null, 
+      },
+      null,
       function(layer) {
         return layer === frame_overlay;
       });
@@ -176,8 +178,8 @@ app.Drag.prototype.handleMoveEvent = function(evt) {
     var feature = map.forEachFeatureAtPixel(evt.pixel,
         function(feature, layer) {
           return feature;
-      }, 
-      null, 
+      },
+      null,
       function(layer) {
         return layer === frame_overlay;
         });
@@ -229,16 +231,29 @@ function draw_frame(){
 
 function init(){
 
-    georef_overlay = 
+    georef_overlay =
           new ol.layer.Image({
+            visible: false,
             source: new ol.source.ImageStatic({
               url: '{{target.url}}',
               size: {{target.size}},
               projection: targetProjection,
               imageExtent: MapExtent,
-              crossOrigin: null 
+              crossOrigin: null
             })
           });
+
+    coverage_control =
+          new ol.layer.Image({
+                title: 'dataset {{dataset.pk}} coverage',
+                visible: true,
+                source: new ol.source.ImageWMS({
+                  url: '/warp/export/',
+                  params: {'LAYERS': '{{dataset.pk}}'},
+                  ratio: 1,
+                  serverType: 'geoserver'
+                })
+              });
 
     frame_overlay =  new ol.layer.Vector({
       source: frame_source,
@@ -258,7 +273,7 @@ function init(){
         })
       })
     })
-    
+
 /*
     var wms_base = new ol.layer.Tile({
             extent: targetExtent,
@@ -269,17 +284,18 @@ function init(){
               params: {'LAYERS': 'PRG'}
             })
           });
-*/
+
     var wms_base = new ol.layer.Tile({
         source: new ol.source.OSM()
     });
-
+*/
     map_print = new ol.Map({
       interactions: ol.interaction.defaults().extend([new app.Drag()]),
       layers: [
-{{ dataset.baselayer | escape | safe  }}
+{{ print_baselayer | escape | safe  }}
           georef_overlay,
-          frame_overlay
+          frame_overlay,
+          coverage_control
       ],
       controls: ol.control.defaults().extend([
         //new ol.control.ScaleLine({target: 'map_print', 'units': 'metric'}),
@@ -293,15 +309,21 @@ function init(){
         zoom: 2
       })
     });
-    
+
+    var layerSwitcher = new ol.control.LayerSwitcher({
+        tipLabel: 'Legend' // Optional label for button
+    });
+    map_print.addControl(layerSwitcher);
+
     map_print.getView().fit({{target.extent}}, map_print.getSize());
-    
+
     var exportPNGElement = document.getElementById('esporta_png');
 
     if ('download' in exportPNGElement) {
       exportPNGElement.addEventListener('click', function(e) {
         map_print.once('postcompose', function(event) {
           var canvas = event.context.canvas;
+          exportPNGElement.crossOrigin = "Anonymous"
           exportPNGElement.href = canvas.toDataURL('image/png');
         });
         map_print.renderSync();
@@ -349,15 +371,14 @@ function init(){
       console.log('HEI:'+height.toString());
       console.log(size);
 
-      var source = wms_base.getSource();
+      var source = coverage_control.getSource();
 
       var tileLoadStart = function() {
         ++loading;
       };
 
       var tileLoadEnd = function(callback) {
-        ++loaded;
-        if (loading === loaded) {
+        //if (loading === loaded) {
           var canvas = this;
           window.setTimeout(function() {
             loading = 0;
@@ -366,31 +387,31 @@ function init(){
             var pdf = new jsPDF('landscape', undefined, format);
             pdf.addImage(data, 'JPEG', 0, 0, dim[0], dim[1]);
             pdf.save('map_print.pdf');
-            source.un('tileloadstart', tileLoadStart);
-            source.un('tileloadend', tileLoadEnd, canvas);
-            source.un('tileloaderror', tileLoadEnd, canvas);
+            //source.un('imageloadstart', tileLoadStart);
+            source.un('imageloadend', tileLoadEnd, canvas);
+            //source.un('imageloaderror', tileLoadEnd, canvas);
             map_print.setSize(view_size);
-            map_print.getView().fit(view_extent, view_size,{constrainResolution:false,nearest:true});
+            map_print.getView().fit(view_extent);//, view_size,{constrainResolution:false,nearest:true});
             $( "#esporta_pdf" ).removeClass( 'disabled' );
             $( "#progress" ).addClass( 'hidden' );
             frame_overlay.setVisible(true);
             map_print.renderSync();
             document.body.style.cursor = 'auto';
           }, 100);
-        }
+        //}
       };
 
       map_print.once('postcompose', function(event) {
-        source.on('tileloadstart', tileLoadStart);
-        source.on('tileloadend', tileLoadEnd, event.context.canvas);
-        source.on('tileloaderror', tileLoadEnd, event.context.canvas);
+        //source.on('imageloadstart', tileLoadStart);
+        source.on('imageloadend', tileLoadEnd, event.context.canvas);
+        //source.on('imageloaderror', tileLoadError, event.context.canvas);
       });
 
       map_print.setSize(size);
-      map_print.getView().fit(extent, size,{constrainResolution:false,nearest:true}); // /** @type {ol.Size} */ (map_print.getSize()));
+      map_print.getView().fit(extent, {size:size,constrainResolution:false,nearest:true}); // /** @type {ol.Size} */ (map_print.getSize()));
       map_print.renderSync();
-      
-      
+
+
       console.log('END');
 
     }, false);
@@ -405,7 +426,7 @@ function init(){
 {% block contenuto %}
 
 
-<div class="container"> 
+<div class="container">
     <div class="col-md-12">
         <div class="panel panel-default">
             <div class="panel-body">

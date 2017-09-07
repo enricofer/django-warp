@@ -810,7 +810,7 @@ function init(){
                   ratio: 1,
                   serverType: 'geoserver'
                 })
-              }),
+              });
 
 
     map_destinazione = new ol.Map({
@@ -915,7 +915,7 @@ function init(){
                                 <a class="btn btn-default" id="loadControlli"   role="button">Load</a>
                                 <a class="btn btn-default hidden" id="test"   role="button">test</a>
                                 <a class="btn btn-default hidden" id="test2"   role="button">test</a>
-                                <label class="checkbox-inline"><input id="alpha" name="alpha" type="checkbox" value="0">Transparency</label>
+                                <label class="checkbox-inline"><input id="alpha" name="alpha" type="checkbox" {% if source.dataset.transparency %}checked{% endif %}>Transparency</label>
                                 <input class="btn btn-default hidden" type="file" id="upload" />
                                 <div class="pull-right">
                                     <a id="errore"  class="hidden btn btn-warning" role="button">Loading error</a>
