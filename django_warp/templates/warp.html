@@ -153,6 +153,9 @@ $.ajaxSetup({
 
 $(document).ready(function(){
 
+    $("#raster_name").on("input", function() {
+        alert("Change to " + this.value);
+    });
 
     // funzione per intercettare invio della form ed aggiungere alcuni campi prima del submit
     $('#fase2').submit(function(eventObj) {
@@ -915,9 +918,16 @@ function init(){
                                 <a class="btn btn-default" id="loadControlli"   role="button">Load</a>
                                 <a class="btn btn-default hidden" id="test"   role="button">test</a>
                                 <a class="btn btn-default hidden" id="test2"   role="button">test</a>
-                                <label class="checkbox-inline"><input id="alpha" name="alpha" type="checkbox" {% if source.dataset.transparency %}checked{% endif %}>Transparency</label>
+                                <label class="checkbox-inline"><input id="alpha" name="alpha" type="checkbox" {% if source.dataset.transparency %}value = '1' checked{% else %} value = '0' {% endif %}>Transparency</label>
                                 <input class="btn btn-default hidden" type="file" id="upload" />
                                 <div class="pull-right">
+                                    <input type="text"  class="form-control col-xs-2" id="raster_name" value="{{source.item.titolo}}">
+                                    <select id="datasets" class="selectpicker form-control col-xs-2" data-live-search="true" title="Changedataset">
+                                       {% for ds in source.datasets %}
+                                            <option>{{ ds.name }}</option>
+                                       {% endfor %}
+                                    </select>
+                                    <a id="update" class="hidden btn btn-primary" role="button">Update</a>
                                     <a id="errore"  class="hidden btn btn-warning" role="button">Loading error</a>
                                     <a id="esito"  class="hidden btn btn-success" role="button">Georeferencing report</a>
                                     <a id="download" class="hidden btn btn-success" role="button">Download</a>

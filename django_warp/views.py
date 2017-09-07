@@ -382,7 +382,8 @@ def georef_start(request, datasetId = None, idx = None):
                 'correlazione': None,
                 'clipSorgente': None,
                 'clipDestinazione': None,
-                'dataset': nuova_mappa.dataset
+                'dataset': nuova_mappa.dataset,
+                'datasets': datasets.objects.all().order_by('pk')
             }
     else: #edita file esistente
         if idx:
@@ -412,7 +413,8 @@ def georef_start(request, datasetId = None, idx = None):
                 'correlazione': georefItem.correlazione,
                 'clipSorgente': georefItem.clipSorgente,
                 'clipDestinazione': georefItem.clipDestinazione,
-                'dataset': georefItem.dataset
+                'dataset': georefItem.dataset,
+                'datasets': datasets.objects.all().order_by('pk')
                 }
     return render(request, "warp.html", {'dataset': datasetId, "source": source,"errore":errore, 'form': form, 'settings': settings})
 
@@ -464,6 +466,7 @@ def georef_apply(request):
         if request.method == 'POST':
             body_unicode = request.body.decode('utf-8')
             postData = json.loads(body_unicode)
+            print ("postData", postData, file=sys.stderr)
             id = json.loads(postData['id'])
             alpha = json.loads(postData['alpha']) == 1
             georefItem = rasterMaps.objects.get(pk=id)
