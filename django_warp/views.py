@@ -74,6 +74,31 @@ def datasets_list (request, alert=None):
     return render(request, 'datasets_list.html', {'items': datasets_items, 'alert': alert, 'removable':removableDSList()})
 
 @login_required(login_url='/warp/login/')
+def update_image (request):
+    if request.method == 'POST':
+        body_unicode = request.body.decode('utf-8')
+        postData = json.loads(body_unicode)
+        print ("postData", postData, file=sys.stderr)
+        raster_image = rasterMaps.objects.get(pk=postData["raster_id"])
+        if raster_image:
+            raster_image.titolo = postData["raster_name"]
+            raster_image.note = postData["raster_notes"]
+            new_dataset = datasets.objects.get(pk=postData["raster_dataset"])
+            old_dataset = raster_image.dataset
+            if new_dataset and old_dataset != new_dataset:
+                if new_dataset.name == '__TRASH':
+                    raster_image.datasetRecover = raster_image.dataset
+                raster_image.dataset = new_dataset
+            raster_image.save()
+            if new_dataset and old_dataset != new_dataset:
+                build_vrt(old_dataset.pk)
+                build_vrt(new_dataset.pk)
+            return JsonResponse({"result":True})
+        else:
+            return JsonResponse({"result":False})
+            
+
+@login_required(login_url='/warp/login/')
 @user_passes_test(lambda u: u.is_staff)
 def clone_dataset (request, dataset):
     dataset_obj = datasets.objects.get(pk=dataset)
@@ -186,6 +211,7 @@ def get_trash_dataset():
 
 def dataset_view (request, datasetId = None):
     dataset = datasets.objects.get(pk=datasetId)
+    all_datasets_list = datasets.objects.all().order_by('pk')
     dataset_imgs = rasterMaps.objects.filter(dataset=datasetId)
     map_images = []
     for map_image in dataset_imgs:
@@ -197,7 +223,7 @@ def dataset_view (request, datasetId = None):
                 'size':[map_image.webimg.width,map_image.webimg.height],
                 'extent':[raster.extent[0],raster.extent[1],raster.extent[2],raster.extent[3]]
             })
-    return render(request, 'dataset_view.html', {'idx': datasetId, 'images': map_images, 'dataset':dataset, 'settings':settings})
+    return render(request, 'dataset_view.html', {'idx': datasetId, 'images': map_images, 'dataset':dataset, 'datasets':all_datasets_list, 'settings':settings})
 
 def get_extent(raster):
     gt = raster.GetGeoTransform()
@@ -224,7 +250,7 @@ def export(request):
                 par_crs = request.GET.get('CRS', '3857')
             else:
                 par_crs = request.GET.get('SRS', '3857')
-            par_transparent = request.GET.get('TRANSPARENT', 'false') == 'true'
+            par_transparent = request.GET.get('TRANSPARENT', 'false')
             par_format = request.GET.get('FORMAT', 'image/jpeg')
             if par_format == 'image/jpeg':
                 gdal_format = 'JPEG'
@@ -236,9 +262,12 @@ def export(request):
             par_dataset = int(request.GET.get('LAYERS', 0)) # specify dataset id in wms layers parameter
             
             dataset = datasets.objects.get(pk=par_dataset)
+            if not dataset.vrt:
+                return HttpResponse(status=204)
             coverage = gdal.Open(os.path.join(settings.MEDIA_ROOT,dataset.vrt.name), gdalconst.GA_ReadOnly)
             #print ("COVERAGE", coverage.RasterXSize, coverage.RasterYSize, file=sys.stderr)
             clipFile = os.path.join(settings.MEDIA_ROOT,'warp','wms',str(uuid.uuid4())+'.'+gdal_format.lower())
+            testFile = os.path.join(settings.MEDIA_ROOT,'warp','wms','__test.'+gdal_format.lower())
             
             try:
                 os.makedirs(os.path.dirname(clipFile))
@@ -253,16 +282,19 @@ def export(request):
             
             img = Image.open(clipFile)
             img = img.resize((par_width,par_height), Image.ANTIALIAS)
-            img = img.convert('RGBA')
             
-            if par_transparent:
+            
+            #par_transparent = False
+            if par_transparent  == 'true':
+                #img = img.convert('RGBA')
                 datas = img.getdata()
                 newData = []
+                print ("par_transparent", datas[0], file=sys.stderr)
                 for item in datas:
-                    if item[0] == 255 and item[1] == 255 and item[2] == 255:
+                    if item[0] == 255 and item[1] == 255 and item[2] == 255 and item[3] == 255:
                         newData.append((item[0], item[1], item[2], 0))
                     else:
-                        newData.append((item[0], item[1], item[2], 255))
+                        newData.append((item[0], item[1], item[2], item[3]))
                 img.putdata(newData)
             
             img.save(clipFile)
@@ -311,13 +343,19 @@ def recover_image(request, idx = None):
 def build_vrt(datasetId):
     dataset = datasets.objects.get(pk=datasetId)
     dataset_imgs = rasterMaps.objects.filter(dataset=dataset)
+    print ("build_vrt",dataset, file=sys.stderr)
     vrt_files = ""
     for img in dataset_imgs:
+        print ("build_vrt",img, file=sys.stderr)
         vrt_files += '"'+settings.MEDIA_ROOT + str(img.destinazione) + '" '
-    vrtFileName = os.path.join(settings.MEDIA_ROOT,'warp',dataset.name) + '.vrt'
-    buildVrtCmd = 'gdalbuildvrt -hidenodata -overwrite "%s" %s' % (vrtFileName, vrt_files)
-    os.system(buildVrtCmd) 
-    dataset.vrt = os.path.relpath(vrtFileName,settings.MEDIA_ROOT)
+    if vrt_files:
+        vrtFileName = os.path.join(settings.MEDIA_ROOT,'warp',dataset.name) + '.vrt'
+        buildVrtCmd = 'gdalbuildvrt -addalpha -hidenodata -overwrite "%s" %s' % (vrtFileName, vrt_files)
+        os.system(buildVrtCmd) 
+        dataset.vrt = os.path.relpath(vrtFileName,settings.MEDIA_ROOT)
+    else:
+        vrtFileName = ''
+        dataset.vrt = None
     dataset.save()
      
     return vrtFileName
@@ -466,7 +504,6 @@ def georef_apply(request):
         if request.method == 'POST':
             body_unicode = request.body.decode('utf-8')
             postData = json.loads(body_unicode)
-            print ("postData", postData, file=sys.stderr)
             id = json.loads(postData['id'])
             alpha = json.loads(postData['alpha']) == 1
             georefItem = rasterMaps.objects.get(pk=id)

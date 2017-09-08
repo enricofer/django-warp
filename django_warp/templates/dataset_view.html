@@ -48,28 +48,20 @@ function init(){
 
 {{ dataset.baselayer | escape | safe }}
 
-{% for image in images %}
+{% for ds in datasets %}
+      {% if ds.name != '__TRASH' %}
       new ol.layer.Image({
-            title: '{{ image.titolo}}',
-            visible: false,
-            source: new ol.source.ImageStatic({
-              url: '{{ image.url }}',
-              size: {{image.size}},
-              projection: targetProjection,
-              imageExtent: {{image.extent}}
-            })
-          }),
-{% endfor %}
-      new ol.layer.Image({
-            title: 'dataset {{idx}} coverage',
-            visible: false,
+            title: 'dataset {{ ds.name }} coverage',
+            visible:{% if ds == dataset and ds.name != '__TRASH' %} true {% else %} false{% endif %},
             source: new ol.source.ImageWMS({
               url: '/warp/export',
-              params: {'LAYERS': '{{idx}}'},
+              params: {'LAYERS': '{{ds.pk}}'},
               ratio: 1,
               serverType: 'geoserver'
             })
           }),
+      {% endif %}
+{% endfor %}
       ],
       controls: ol.control.defaults().extend([
         //new ol.control.ScaleLine(),
@@ -107,7 +99,7 @@ function init(){
 </script>
 {% endblock %}
 {% block onload %} onload="init()"{% endblock %}
-{% block titolo %}DATASET {{idx}} OVERVIEW{% endblock %}
+{% block titolo %}DATASET {{ dataset.name }} OVERVIEW{% endblock %}
 {% block menu %}
 <li>
     <a href="/warp/{{idx}}/">Dataset detail</a>

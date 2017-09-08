@@ -154,8 +154,49 @@ $.ajaxSetup({
 $(document).ready(function(){
 
     $("#raster_name").on("input", function() {
-        alert("Change to " + this.value);
+        $('#update_details').removeClass("hidden");
     });
+
+    $("#raster_notes").on("input", function() {
+        $('#update_details').removeClass("hidden");
+    });
+
+    $('#raster_dataset').change(function() {
+        if ($(this).val() != $(this).data('default')){
+            $('#update_details').removeClass("hidden");
+        }
+    });
+
+    $("#update_details").click( function(event) {
+        var detailForm = {
+            raster_id: {{ source.id }},
+            raster_name: $( "#raster_name" ).val(),
+            raster_notes: $( "#raster_notes" ).val(),
+            raster_dataset: parseInt($( "#raster_dataset" ).val())
+        };
+
+        $.ajax({
+            csrfmiddlewaretoken: '{{ csrf_token }}',
+            url: '/warp/updateimage/',
+            type: 'POST',
+            data: JSON.stringify(detailForm),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            async: true,
+            success: function(payload) {
+                if ($("#raster_dataset option[value='"+ $( "#raster_dataset" ).val() +"']").text() == '__TRASH'){
+                    window.location.replace("/warp/{{ dataset }}");
+                }
+                $(".navbar-brand").text("Georeferencing "+detailForm['raster_name']);
+                $("#dataset_detail_link").attr("href", "/warp/"+$( "#raster_dataset" ).val());
+                $("#dataset_detail_link").text("dataset "+ $("#raster_dataset option[value='"+ $( "#raster_dataset" ).val() +"']").text() +" detail");
+                $("#dataset_detail_overview").attr("href", "/warp/viewdataset/"+$( "#raster_dataset" ).val());
+                $("#dataset_detail_overview").text("dataset "+ $("#raster_dataset option[value='"+ $( "#raster_dataset" ).val() +"']").text() +" overview");
+                $('#update_details').addClass("hidden");
+            }
+        });
+    });
+
 
     // funzione per intercettare invio della form ed aggiungere alcuni campi prima del submit
     $('#fase2').submit(function(eventObj) {
@@ -870,10 +911,10 @@ function init(){
 {% block titolo %}{{ dataset.epsg }}Georeferencing {% if source %}{{source.attribution}}{% endif %}{% endblock %}
 {% block menu %}
 <li>
-<a href="/warp/{{ dataset }}">dataset {{ dataset }} detail</a>
+<a id="dataset_detail_link" href="/warp/{{ dataset }}">dataset {{ source.dataset.name }} detail</a>
 </li>
 <li>
-<a href="/warp/viewdataset/{{ dataset }}">dataset {{ dataset }} overview</a>
+<a id="dataset_detail_overview"  href="/warp/viewdataset/{{ dataset }}">dataset {{ source.dataset.name }} overview</a>
 </li>
 {% endblock %}
 {% block contenuto %}
@@ -919,14 +960,9 @@ function init(){
                                 <a class="btn btn-default hidden" id="test"   role="button">test</a>
                                 <a class="btn btn-default hidden" id="test2"   role="button">test</a>
                                 <label class="checkbox-inline"><input id="alpha" name="alpha" type="checkbox" {% if source.dataset.transparency %}value = '1' checked{% else %} value = '0' {% endif %}>Transparency</label>
+                                <label class="checkbox-inline"><input id="autopan" type="checkbox" value="0">Auto pan/zoom</label>
                                 <input class="btn btn-default hidden" type="file" id="upload" />
                                 <div class="pull-right">
-                                    <input type="text"  class="form-control col-xs-2" id="raster_name" value="{{source.item.titolo}}">
-                                    <select id="datasets" class="selectpicker form-control col-xs-2" data-live-search="true" title="Changedataset">
-                                       {% for ds in source.datasets %}
-                                            <option>{{ ds.name }}</option>
-                                       {% endfor %}
-                                    </select>
                                     <a id="update" class="hidden btn btn-primary" role="button">Update</a>
                                     <a id="errore"  class="hidden btn btn-warning" role="button">Loading error</a>
                                     <a id="esito"  class="hidden btn btn-success" role="button">Georeferencing report</a>
@@ -951,7 +987,20 @@ function init(){
                                 <div id="map_destinazione"></div>
                             </div>
                         </div>
-                        <label class="checkbox-inline"><input id="autopan" name="alpha" type="checkbox" value="0">Auto pan/zoom</label>
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class="form-inline">
+                                        <input type="text"  class="form-control col-xs-2" id="raster_name" value="{{source.item.titolo}}" placeholder="Insert image name">
+                                        <select id="raster_dataset" class="selectpicker form-control col-xs-3" data-live-search="true" title="Changedataset">
+                                           {% for ds in source.datasets %}
+                                                <option {% if ds == source.dataset %} selected {% endif %} value='{{ ds.pk }}'>{{ ds.name }}</option>
+                                           {% endfor %}
+                                        </select>
+                                        <input type="text"  class="form-control col-xs-5" id="raster_notes" value="{{source.item.note}}" placeholder="Insert optional notes">
+                                        <a id="update_details" class="btn btn-primary hidden" role="button">Update raster details</a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 <!-- </div> -->
         </div>
