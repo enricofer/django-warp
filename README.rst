@@ -84,9 +84,25 @@ USAGE
 =====
 CHANGELOG
 =====
+
 0.1 first release
+
 0.2 improved dataset manager
+
 0.3 setting epsg projection different from 3857 4326 issues fix
+
+0.4 new feature - download zipped collection of dataset georefs tiff along with .vrt file
+new feature - auto pan/zoom on target/source view change
+can't clip raster issue fixed
+
+0.5 new feature - imagewms server for georeferenced datasets
+new feature - display dataset coverage with internal imagewms server
+new feature - overlay of all georeferenced datasets coverage from internal imagewms server in warp view
+new feature - raster metadata edit in warp view
+new feature - can move rasters between datasets
+new feature - datasets cloning
+accidental clipping polygon moving while panning in warp windows issue fixed
+border transparency in datasets coverage issue fixed
 
 =====
 SCREENSHOTS
