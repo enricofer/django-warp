@@ -14,9 +14,48 @@ import json
 import sys
 import os
 import uuid
+import tempfile
+import inspect
+import time
+from django.core.signals import request_finished
+from django.dispatch import receiver
 from PIL import Image
 
-# lib
+
+
+def execute (cmd, logCmdFilename=None):
+    """
+    execute command and write log
+    """
+    print ("CMD", cmd, file=sys.stderr)
+    if logCmdFilename:
+        os.system('echo "%s<br/>\n" >> "%s"  2>&1' % (cmd,logCmdFilename))
+        os.system('%s >> "%s"  2>&1' % (cmd,logCmdFilename))
+        os.system('echo "<br/>\n<br/>\n" >> "%s"  2>&1' % (logCmdFilename))
+    else:
+        os.system(cmd)
+    print ("OK", file=sys.stderr)
+
+def remove_tempfiles_callback(sender, **kwargs): 
+    '''
+    remove older files from wms tempdir
+    '''
+    request_finished.disconnect(remove_tempfiles_callback)
+    
+    delay = time.time() - 60*60*24 # 1 day delay
+    
+    wms_temp_dir = os.path.join(settings.MEDIA_ROOT,'warp','wms')
+    for tempfile in os.listdir(wms_temp_dir):
+        filePath = os.path.join(wms_temp_dir,tempfile)
+        if os.path.getmtime(filePath) < delay:
+            os.remove(filePath)
+            
+    warp_dir = os.path.join(settings.MEDIA_ROOT,'warp')
+    for tempfile in os.listdir(warp_dir):
+        if tempfile.endswith(('.json', '.geojson', '.xml', '.log')):
+            filePath = os.path.join(warp_dir,tempfile)
+            if os.path.getmtime(filePath) < delay: 
+                os.remove(filePath)
 
 def handle_uploaded_file(f,pk):
     fileRelativeToMediaRoot = 'warp/%s_s_%s' % ('0000'[:4-len(str(pk))]+str(pk),f.name)
@@ -254,8 +293,10 @@ def export(request):
             par_format = request.GET.get('FORMAT', 'image/jpeg')
             if par_format == 'image/jpeg':
                 gdal_format = 'JPEG'
+                gdal_bandlist = [1,2,3]
             elif par_format == 'image/png':
                 gdal_format = 'PNG'
+                gdal_bandlist = [1,2,3,4]
             par_width = int(request.GET.get('WIDTH', '150'))
             par_height = int(request.GET.get('HEIGHT', '100'))
             par_bbox = json.loads("["+request.GET.get('BBOX', '')+"]")
@@ -266,27 +307,34 @@ def export(request):
                 return HttpResponse(status=204)
             coverage = gdal.Open(os.path.join(settings.MEDIA_ROOT,dataset.vrt.name), gdalconst.GA_ReadOnly)
             #print ("COVERAGE", coverage.RasterXSize, coverage.RasterYSize, file=sys.stderr)
-            clipFile = os.path.join(settings.MEDIA_ROOT,'warp','wms',str(uuid.uuid4())+'.'+gdal_format.lower())
-            testFile = os.path.join(settings.MEDIA_ROOT,'warp','wms','__test.'+gdal_format.lower())
+            #clipFile = os.path.join(settings.MEDIA_ROOT,'warp','wms',str(uuid.uuid4())+'.'+gdal_format.lower())
+            wms_temp_dir = os.path.join(settings.MEDIA_ROOT,'warp','wms')
             
             try:
-                os.makedirs(os.path.dirname(clipFile))
+                os.makedirs(os.path.dirname(wms_temp_dir))
             except FileExistsError: 
                 pass
+            
+            clipfile_obj = tempfile.NamedTemporaryFile(dir=wms_temp_dir, delete=False, mode='w+b', suffix='.'+gdal_format.lower())
+            clipFile = clipfile_obj.name
+            #print ("clipfile", clipFile, file=sys.stderr)
                 
             projWinList = [par_bbox[0],par_bbox[3],par_bbox[2],par_bbox[1]] #reformat bounds in ulx,uly,lrx,lry format
-            clip = gdal.Translate(clipFile, coverage, format = gdal_format, projWin = projWinList, width = par_width, height = par_height)#, format = gdal_format, width = 400, height = 400), width = par_width, height = par_height
+            projWinListStr = " ".join(str(x) for x in projWinList)
+            print ("projWinList", projWinList, projWinListStr, file=sys.stderr)
+            print ("gdal_command", "gdal_translate --debug on %s -of %s -projwin %s -outsize %s %s %s %s" % (" ".join("-b "+str(x) for x in gdal_bandlist), gdal_format, projWinListStr, par_width, par_height, os.path.join(settings.MEDIA_ROOT,dataset.vrt.name), clipFile), file=sys.stderr)
+            clip = gdal.Translate(clipFile, coverage, bandList=gdal_bandlist, format=gdal_format, projWin=projWinList, width=par_width, height=par_height)#, format = gdal_format, width = 400, height = 400), width = par_width, height = par_height
             if not clip: # catch GDAL_ERROR 1: b'IReadBlock and rebuild clip image without width and height
-                clip = gdal.Translate(clipFile, coverage, format = gdal_format, projWin = projWinList, noData = None)
-            #warp = gdal.Warp(clipFile,clip,format = gdal_format,xRes = par_width, yRes = par_height )
+                clip = gdal.Translate(clipFile, coverage, bandList=gdal_bandlist, format=gdal_format, projWin=projWinList, noData=None)
+            print ("clip", clip, file=sys.stderr)
+            
             
             img = Image.open(clipFile)
             img = img.resize((par_width,par_height), Image.ANTIALIAS)
             
             
-            #par_transparent = False
             if par_transparent  == 'true':
-                #img = img.convert('RGBA')
+                img = img.convert('RGBA')
                 datas = img.getdata()
                 newData = []
                 print ("par_transparent", datas[0], file=sys.stderr)
@@ -298,6 +346,8 @@ def export(request):
                 img.putdata(newData)
             
             img.save(clipFile)
+            
+            request_finished.connect(remove_tempfiles_callback)
             
             with open(clipFile, "rb") as f:
                 return HttpResponse(f.read(), content_type=par_format)
@@ -485,20 +535,35 @@ def georef_print(request,idx):
     print_baselayer = georefItem.dataset.baselayer.replace("http://","/warp/proxy/http://").replace("https://","/warp/proxy/https://")
     return render(request, "warp_print.html", {"target": target,'dataset': georefItem.dataset,"settings": settings, "print_baselayer":print_baselayer})
 
+def warp_clipping_poligon(raster_id, metodo = "-tps"):
+    rasterItem = rasterMaps.objects.get(pk=raster_id)
+    temp_dir = os.path.join(settings.MEDIA_ROOT,'warp')
+    sorgenteTempFile = tempfile.NamedTemporaryFile(dir=temp_dir, delete=False, mode='w+b', suffix='.geojson')
+    destinazioneTempFile = tempfile.NamedTemporaryFile(dir=temp_dir, delete=False, mode='w+b', suffix='.geojson')
+    gcpStringClip = ""
+    for gcp in json.loads(rasterItem.correlazione):
+        gcpStringClip += "-gcp %s %s %s %s " % (gcp[0][0], gcp[0][1], gcp[1][0], gcp[1][1])
+    
+    with open(sorgenteTempFile.name, 'wt') as out:
+        out.write(rasterItem.clipSorgente)
+        
+    ogr_clip_cmd = 'ogr2ogr -a_srs EPSG:%s -f "GeoJSON" %s %s "%s" "%s"' % (rasterItem.dataset.epsg, gcpStringClip, metodo, destinazioneTempFile.name, sorgenteTempFile.name)
+    execute(ogr_clip_cmd)
+    
+    with open(destinazioneTempFile.name, 'rt') as dest:
+        clipping_polygon = dest.read()
+    
+    os.remove(sorgenteTempFile.name)
+    os.remove(destinazioneTempFile.name)
+    
+    return clipping_polygon
+    
 
 @login_required(login_url='/warp/login/')
 def georef_apply(request):
     """
     do georef
     """
-    
-    def execute (cmd):
-        """
-        execute command and write log
-        """
-        os.system('echo "%s<br/>\n" >> "%s"  2>&1' % (cmd,logCmdFilename))
-        os.system('%s >> "%s"  2>&1' % (cmd,logCmdFilename))
-        os.system('echo "<br/>\n<br/>\n" >> "%s"  2>&1' % (logCmdFilename))
     
     if request.is_ajax():
         if request.method == 'POST':
@@ -512,8 +577,7 @@ def georef_apply(request):
             tempImg = sorgenteImg[:10] + 't' + sorgenteImg[11:-4] + '.tif'
             openlayersImg = sorgenteImg[:10] + 'o' + sorgenteImg[11:-4] + '.png'
             sorgenteClip = sorgenteImg[:-4] + '.geojson'
-            destinazioneClip = destinazioneImg[:-4] + '.geojson'
-            
+            destinazioneClip = destinazioneImg[:-4] + '.geojson'            
             #build log file
             logCmd = sorgenteImg[:-4] + '.log'
             logCmdFilename = settings.MEDIA_ROOT + logCmd
@@ -605,6 +669,7 @@ def georef_apply(request):
             #metodo = "-order 2"
             
             if clip_poligono_string:
+                '''
                 # scrivi file json con il poligono di clip
                 with open(sorgenteClipFile, 'wt') as out:
                     out.write(clip_poligono_string)
@@ -615,6 +680,13 @@ def georef_apply(request):
                 ogr_clip_cmd = 'ogr2ogr -a_srs EPSG:%s -f "GeoJSON" %s %s "%s" "%s"' % (georefItem.dataset.epsg, gcpStringClip, metodo, destinazioneClipFile, sorgenteClipFile)
                 execute(ogr_clip_cmd)
                 #post_gdal_warp = 'gdalwarp -r cubic -co COMPRESS=JPEG -co JPEG_QUALITY=75 -overwrite -cutline "%s" -crop_to_cutline "%s" "%s"' % (destinazioneClipFile, destinazioneFile, logCmdFilename)
+                '''
+                
+                destinazioneClip = warp_clipping_poligon(id)
+                
+                with open(destinazioneClipFile, 'wt') as out:
+                    out.write(destinazioneClip) 
+                
                 clString = '-cutline "%s" -crop_to_cutline' % destinazioneClipFile
             else:
                 #post_gdal_warp = None
@@ -628,12 +700,12 @@ def georef_apply(request):
             gdal_warp_cmd = 'gdalwarp -r cubic %s %s -co COMPRESS=JPEG -co JPEG_QUALITY=75 %s -overwrite -t_srs EPSG:%s "%s" "%s" ' % ( nodata, metodo, clString, georefItem.dataset.epsg, tempFile, destinazioneFile) #
             
             try:
-                execute(gdal_translate_cmd)
+                execute(gdal_translate_cmd, logCmdFilename)
             except:
                 return JsonResponse(risposta)
                 
             try:
-                execute(gdal_warp_cmd)
+                execute(gdal_warp_cmd, logCmdFilename)
             except:
                 return JsonResponse(risposta)
             
@@ -646,7 +718,7 @@ def georef_apply(request):
                 georefItem.destinazione = destinazioneImg
                 destinazioneRaster = GDALRaster(destinazioneFile, write=False)
                 gdal_translate_cmd = 'gdal_translate -of PNG -scale -co worldfile=yes "%s" "%s" ' % ( destinazioneFile, openlayersFile)
-                execute(gdal_translate_cmd)
+                execute(gdal_translate_cmd, logCmdFilename)
                 georefItem.destinazione = destinazioneImg
                 georefItem.webimg = openlayersImg
                 georefItem.correlazione = json.dumps(correlazione)
@@ -693,4 +765,5 @@ def georef_apply(request):
                         'id': 0
                     }
     #logCmdFile.close()
+    request_finished.connect(remove_tempfiles_callback)
     return JsonResponse(risposta)

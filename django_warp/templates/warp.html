@@ -844,6 +844,7 @@ function init(){
 {% endif %}
           });
 
+    //leaved here for further possible uses
     coverage_control =
           new ol.layer.Image({
                 title: 'dataset {{dataset}} coverage',
@@ -862,7 +863,21 @@ function init(){
       layers: [
 {{ source.dataset.baselayer | escape | safe }}
 
-          coverage_control,
+{% for ds in source.datasets %}
+      {% if ds.name != '__TRASH'%}
+          new ol.layer.Image({
+                title: 'dataset {{ ds.name }} coverage',
+                visible:false,
+                source: new ol.source.ImageWMS({
+                  url: '/warp/export',
+                  params: {'LAYERS': '{{ds.pk}}'},
+                  ratio: 1,
+                  serverType: 'geoserver'
+                })
+              }),
+      {% endif %}
+{% endfor %}
+
           georef_overlay,
           clipTargetOverlay,
           controllo_destinazione

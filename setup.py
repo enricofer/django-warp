@@ -14,7 +14,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-warp',
-    version='0.4',
+    version='0.5',
     packages=find_packages(),
     install_requires=[
         'Django>=1.9',
@@ -25,6 +25,7 @@ setup(
         'django-imagekit',
         'django-raster',
         'requests',
+        'GDAL>=2.2.0'
     ],
     include_package_data=True,
     license='GNU General Public License v3 (GPLv3)',  # example license
