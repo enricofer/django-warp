@@ -144,6 +144,10 @@ succesful correlation
 
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/correlate_05.png
 
+datasets coverage overlays in target map
+
+.. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/dataset_coverages.png
+
 dataset overview with georeferenced images mosaic
 
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/overview.png
