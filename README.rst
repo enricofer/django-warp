@@ -47,9 +47,10 @@ Required python libraries:
 * python-slugify
 * django-imagekit
 * django-raster==0.6
+* pygdal==2.1.3.3
 
 Required libraries:
-GDAL/OGR r 2 http://www.gdal.org/
+GDAL/OGR 2.0 http://www.gdal.org/
 
 ==============
 INSTALL
@@ -81,7 +82,6 @@ USAGE
 ::
 
     from django.conf.urls import include,url
-    from django.contrib import admin
     from django.conf.urls.static import static
     from django.conf import settings
 
