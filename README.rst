@@ -41,13 +41,12 @@ REQUIREMENTS
 Required python libraries:
 
 * django==1.9
-* psycopg2
 * django-apps
 * django-cors-headers
 * django-http-proxy
 * python-slugify
 * django-imagekit
-* git+https://github.com/geodesign/django-raster.git@master (development version)
+* django-raster==0.6
 
 Required libraries:
 GDAL/OGR r 2 http://www.gdal.org/
@@ -74,8 +73,23 @@ Development version:
 USAGE
 =====
 
-* Add ``django_warp`` to your ``INSTALLED_APPS``
-* Add  ``url(r'^warp/', include('django_warp.urls')),`` to site ``urls.py``
+* Add ``django.contrib.gis``, ``httpproxy``, ``django_warp`` to your ``INSTALLED_APPS``
+* Define ``MEDIA_URL``, ``MEDIA_ROOT``, ``STATIC_URL``, ``STATIC_ROOT``
+* Add  ``url(r'^warp/', include('django_warp.urls')),`` to urlpatterns in site ``urls.py``
+* Append ``+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)`` to urlpatterns. A minimal ``urls.py`` should be like this:
+
+::
+
+    from django.conf.urls import include,url
+    from django.contrib import admin
+    from django.conf.urls.static import static
+    from django.conf import settings
+
+    urlpatterns = [
+        ...
+        url(r'^warp/', include('django_warp.urls')),
+    ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
 * ``./manage.py makemigrations django_warp`` and ``./manage.py migrate`` to create db context
 * Run server and browse to ``[yourserver address]\warp\`` and login with a valid site credentials
 * First create a dataset with epsg code, extents and baselayer

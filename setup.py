@@ -23,9 +23,9 @@ setup(
         'django-http-proxy',
         'python-slugify',
         'django-imagekit',
-        'django-raster',
+        'django-raster==0.6',
         'requests',
-        'GDAL>=2.2.0'
+        'pygdal==2.1.3.3'
     ],
     include_package_data=True,
     license='GNU General Public License v3 (GPLv3)',  # example license
