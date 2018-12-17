@@ -22,7 +22,8 @@ DJANGO WARP
     :target: https://pypi.python.org/pypi/django-warp/
     :alt: Supported Python Versions
 
-Django Warp provides a reusable app for raster maps georeferencing.
+A reusable Django app for raster datasets collaborative georeferencing.
+The typical use case is the environmental and administrative organizations paper archive digitalization.
 
 Features
 --------
@@ -40,14 +41,14 @@ REQUIREMENTS
 
 Required python libraries:
 
-* django==1.9
+* django
 * django-apps
 * django-cors-headers
 * django-http-proxy
 * python-slugify
 * django-imagekit
-* django-raster==0.6
-* pygdal==2.1.3.3
+* django-raster
+* pygdal
 
 Required libraries:
 GDAL/OGR 2.0 http://www.gdal.org/
@@ -118,6 +119,8 @@ new feature - datasets cloning
 accidental clipping polygon moving while panning in warp windows issue fixed
 border transparency in datasets coverage issue fixed
 
+0.6 update to Django 2.1
+
 =====
 SCREENSHOTS
 =====
@@ -169,4 +172,3 @@ dataset overview with georeferenced images mosaic
 printing a correlated image
 
 .. image:: https://raw.githubusercontent.com/enricofer/django-warp/master/docs/print.png
-
