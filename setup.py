@@ -25,7 +25,7 @@ setup(
         'django-imagekit',
         'django-raster>=0.6',
         'requests',
-        'pygdal>=2.1.0'
+        'GDAL>=2.1.0'
     ],
     include_package_data=True,
     license='GNU General Public License v3 (GPLv3)',  # example license
