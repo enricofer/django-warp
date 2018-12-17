@@ -21,7 +21,7 @@ var targetExtent = [{{ dataset.extentLeft }}, {{ dataset.extentBottom }}, {{ dat
 
 var map;
 
-{% if dataset.epsg = 3857 or dataset.epsg = 4326 %}
+{% if dataset.epsg == 3857 or dataset.epsg == 4326 %}
 var targetProjection = 'EPSG:{{ dataset.epsg }}';
 {% else %}
 var targetProjection = new ol.proj.Projection({

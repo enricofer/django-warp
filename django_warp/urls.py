@@ -1,4 +1,4 @@
-from django.conf.urls import url,include,patterns
+from django.conf.urls import url,include
 from . import views
 #from warp.wms_config import testWmsView
 from httpproxy.views import HttpProxy

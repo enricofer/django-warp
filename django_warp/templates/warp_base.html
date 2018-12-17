@@ -36,7 +36,7 @@
     {% comment %}<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>{% endcomment %}
     <!-- Bootstrap Core JavaScript -->
     <script src="{% static 'warp/js/bootstrap.min.js' %}"></script>
-    
+
     {% block custom_js %}{% endblock %}
 </head>
 
@@ -63,11 +63,11 @@
             <div class="pull-right">
                 <ul class="nav navbar-nav">
                     <li>
-                      
+
                       {% if user.is_anonymous %}
-                      <a href="{% url 'django.contrib.auth.views.login' %}">login</a>
+                      <a href="/warp/login/">login</a>
                       {% else %}
-                      <a href="{% url 'django.contrib.auth.views.logout' %}">{{ user }} logout</a>
+                      <a href="/warp/logout/">{{ user }} logout</a>
                       {% endif %}
                     </li>
                 </ul>
@@ -79,11 +79,11 @@
     </nav>
 
     <!-- Page Content -->
-    
+
 {% block content %}{% endblock %}
 {% block contenuto %}{% endblock %}
 
-    
+
     <!-- /.container -->
     {% block piedipagina %}{% endblock %}
 

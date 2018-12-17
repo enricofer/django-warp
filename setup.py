@@ -14,29 +14,29 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-warp',
-    version='0.5',
+    version='0.6',
     packages=find_packages(),
     install_requires=[
-        'Django>=1.9',
+        'Django>=1.11',
         'psycopg2',
         'django-cors-headers',
         'django-http-proxy',
         'python-slugify',
         'django-imagekit',
-        'django-raster==0.6',
+        'django-raster>=0.6',
         'requests',
-        'pygdal==2.1.3.3'
+        'pygdal>=2.1.0'
     ],
     include_package_data=True,
     license='GNU General Public License v3 (GPLv3)',  # example license
-    description='A Django app for easy/collaborative georeferencing of raster datasets. Make use of GDAL library',
+    description='A Django app for easy/collaborative georeferencing of raster datasets. Acts as web interface to GDAL/OGR',
     url='https://github.com/enricofer/django-warp',
     author='Enrico Ferreguti',
     author_email='enricofer@gmail.com',
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
-        'Framework :: Django :: 1.9',  # replace "X.Y" as appropriate
+        'Framework :: Django :: 2.0',  # replace "X.Y" as appropriate
         'Intended Audience :: Other Audience',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',  # example license
         'Operating System :: OS Independent',

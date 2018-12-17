@@ -71,7 +71,7 @@ var coverage_control;
 var georef_overlay, clipSourceFeatures, clipSourceOverlay, clipTargetFeatures, clipTargetOverlay;
 var messaggio_errore
 
-{% if source.dataset.epsg = 3857 or source.dataset.epsg = 4326 %}
+{% if source.dataset.epsg == 3857 or source.dataset.epsg == 4326 %}
 var targetProjection = 'EPSG:{{ source.dataset.epsg }}';
 {% else %}
 var targetProjection = new ol.proj.Projection({

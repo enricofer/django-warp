@@ -5,9 +5,9 @@ documenti/
 documenti/*
 warp_test/*
 warp_test/
-django-warp/bak/
-django-warp/migrations/
-django-warp/__pycache__/
-django-warp/templates/bak/
+django_warp/bak/
+django_warp/migrations/
+django_warp/__pycache__/
+django_warp/templates/bak/
 django_warp.egg-info/
 django_warp.egg-info/*
