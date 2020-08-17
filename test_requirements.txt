@@ -20,7 +20,7 @@ docutils==0.14
 GDAL==2.1.0
 idna==2.8
 jmespath==0.9.3
-kombu==4.2.2
+kombu==4.1.0
 numpy==1.15.4
 packaging==18.0
 pilkit==2.0
