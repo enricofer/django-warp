@@ -1,0 +1,30 @@
+language: python
+python:
+  - "3.4"
+#  - "3.6"
+#  - "3.8" Fails
+#dist: bionic
+addons:
+  postgresql: 9.6
+  apt:
+    packages:
+    - postgresql-9.6-postgis-2.3
+# Allow the sudo command
+sudo: true
+# command to install dependencies
+before_script:
+  - psql -U postgres -c "create extension postgis"
+before_install:
+  - sudo add-apt-repository --yes ppa:ubuntugis/ppa
+  - sudo apt-get --quiet update
+  - sudo apt-get install --yes gdal-bin libgdal-dev gcc
+  - export CPLUS_INCLUDE_PATH=/usr/include/gdal
+  - export C_INCLUDE_PATH=/usr/include/gdal
+  - sudo pip install --upgrade setuptools
+install:
+  - pip install gdal==`gdal-config --version`
+  - pip install -r test_requirements.txt
+# command to run tests
+script:
+  - ls -al
+  - python manage.py test
