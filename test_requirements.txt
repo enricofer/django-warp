@@ -11,7 +11,7 @@ django-appconf==1.0.2
 django-apps==0.1.0
 django-colorful==1.3
 django-cors-headers==2.4.0
-django-http-proxy==0.4.3
+git+https://github.com/enricofer/django-http-proxy@master#egg=django-http-proxy
 django-imagekit==4.0.2
 django-raster==0.6
 django-wms==0.1.12
