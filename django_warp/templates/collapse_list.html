@@ -1,4 +1,5 @@
 {% extends 'warp_base.html' %}
+{% load i18n %}
 {% load staticfiles %}
 {% comment %} {% endcomment %}
 
@@ -30,19 +31,19 @@ $(document).ready(function() {
                 bootbox.confirm("Do you really want to trash image? " + event.target.parentElement.parentElement.id.toString(), function(result) {
                     if (result) { window.location = "/warp/trashimage/" + event.target.parentElement.parentElement.id+"/"; }
                 });
-            } 
+            }
             if (event.target.id == "recover"){
-                window.location = "/warp/recoverimage/" + event.target.parentElement.parentElement.id+"/"; 
-            } 
-            
+                window.location = "/warp/recoverimage/" + event.target.parentElement.parentElement.id+"/";
+            }
+
         }
     });
-    
-    
+
+
     $("#new").click(function(event) {
         window.location = "/warp/newimage/{{dataset.pk}}/"
     });
-    
+
 });
 </script>
 {% endblock %}
@@ -56,7 +57,7 @@ $(document).ready(function() {
 {% block contenuto %}
 
 
-<div class="container"> 
+<div class="container">
     <div class="col-md-12">
             <div id="accordion" role="tablist" aria-multiselectable="true">
                 {% for dataset in groups %}

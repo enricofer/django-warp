@@ -12,7 +12,7 @@ django-colorful
 django-cors-headers
 django-http-proxy
 django-imagekit
-django-raster
+#django-raster
 django-wms
 docutils
 idna
@@ -35,4 +35,3 @@ six
 Unidecode
 urllib3
 vine
-
