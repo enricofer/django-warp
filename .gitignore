@@ -5,7 +5,6 @@ documenti/*
 warp_test/*
 warp_test/
 django_warp/bak/
-django_warp/migrations/
 django_warp/__pycache__/
 django_warp/templates/bak/
 django_warp.egg-info/

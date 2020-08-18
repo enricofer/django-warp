@@ -37,8 +37,8 @@ class rasterMaps(models.Model):
     titolo = models.CharField(max_length=50)
     slug = models.CharField(max_length=50,blank=True)
     note = models.TextField(blank=True)
-    dataset = models.ForeignKey('datasets',blank=True,null=True,related_name="current_dataset",on_delete="PROTECT")
-    datasetRecover = models.ForeignKey('datasets',blank=True,null=True,related_name="recover_dataset",on_delete="PROTECT")
+    dataset = models.ForeignKey('datasets',blank=True,null=True,related_name="current_dataset",on_delete="PROTECT") #
+    datasetRecover = models.ForeignKey('datasets',blank=True,null=True,related_name="recover_dataset",on_delete="PROTECT") #
     sorgente = models.ImageField(upload_to='warp/', validators=[validate_file_extension])
     sorgente_thumbnail = ImageSpecField(source='sorgente',
                                       processors=[ResizeToFill(120, 120)],
