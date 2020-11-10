@@ -1,7 +1,7 @@
 language: python
 python:
-  - "3.4"
-#  - "3.6"
+#  - "3.4"
+  - "3.6"
 #  - "3.8" Fails
 #dist: bionic
 addons:
@@ -25,7 +25,7 @@ before_install:
   - sudo pip install --upgrade setuptools
 install:
   - pip install gdal==`gdal-config --version`
-  - pip install -r test_requirements.txt
+  - pip install -r requirements.txt
 # command to run tests
 script:
   - ls -al
