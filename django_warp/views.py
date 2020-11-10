@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.conf import settings
-from .models import rasterMaps, datasets
+from .models import rasterMaps, datasets, build_vrt
 from .forms import UploadImmagineSorgenteForm, DatasetForm
 from django.http import JsonResponse,HttpResponse,HttpResponseRedirect,FileResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -119,7 +119,7 @@ def update_image (request):
     if request.method == 'POST':
         body_unicode = request.body.decode('utf-8')
         postData = json.loads(body_unicode)
-        print ("postData", postData, file=sys.stderr)
+        #print ("postData", postData, file=sys.stderr)
         raster_image = rasterMaps.objects.get(pk=postData["raster_id"])
         if raster_image:
             raster_image.titolo = postData["raster_name"]
@@ -183,6 +183,18 @@ def remove_dataset (request, dataset):
             dataset_obj.delete()
     response = datasets_list (request, alert={'class':className, 'message': message })
     return response
+
+def single_raster_delete(rasterId):
+    raster_obj = rasterMaps.objects.get(pk=rasterId)
+    ds = raster_obj.dataset
+    deleted_id = raster_obj.pk
+    raster_obj.delete()
+    build_vrt(ds.pk)
+    return deleted_id
+
+@login_required
+def force_raster_delete (request, rasterId):
+    return JsonResponse({"action":"force_delete", "result": "ok", "deleted_id": single_raster_delete(rasterId)})
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
@@ -323,23 +335,17 @@ def export(request):
 
             projWinList = [par_bbox[0],par_bbox[3],par_bbox[2],par_bbox[1]] #reformat bounds in ulx,uly,lrx,lry format
             projWinListStr = " ".join(str(x) for x in projWinList)
-            print ("projWinList", projWinList, projWinListStr, file=sys.stderr)
-            print ("gdal_command", "gdal_translate --debug on %s -of %s -projwin %s -outsize %s %s %s %s" % (" ".join("-b "+str(x) for x in gdal_bandlist), gdal_format, projWinListStr, par_width, par_height, os.path.join(settings.MEDIA_ROOT,dataset.vrt.name), clipFile), file=sys.stderr)
             clip = gdal.Translate(clipFile, coverage, bandList=gdal_bandlist, format=gdal_format, projWin=projWinList, width=par_width, height=par_height)#, format = gdal_format, width = 400, height = 400), width = par_width, height = par_height
             if not clip: # catch GDAL_ERROR 1: b'IReadBlock and rebuild clip image without width and height
                 clip = gdal.Translate(clipFile, coverage, bandList=gdal_bandlist, format=gdal_format, projWin=projWinList, noData=None)
-            print ("clip", clip, file=sys.stderr)
-
 
             img = Image.open(clipFile)
             img = img.resize((par_width,par_height), Image.ANTIALIAS)
-
 
             if par_transparent  == 'true':
                 img = img.convert('RGBA')
                 datas = img.getdata()
                 newData = []
-                print ("par_transparent", datas[0], file=sys.stderr)
                 for item in datas:
                     if item[0] == 255 and item[1] == 255 and item[2] == 255 and item[3] == 255:
                         newData.append((item[0], item[1], item[2], 0))
@@ -348,7 +354,6 @@ def export(request):
                 img.putdata(newData)
 
             img.save(clipFile)
-
             request_finished.connect(remove_tempfiles_callback)
 
             with open(clipFile, "rb") as f:
@@ -368,11 +373,12 @@ def trash_image(request, idx = None):
         trash_dataset.extentTop = 0
         trash_dataset.save()
     trash_item = rasterMaps.objects.get(pk=idx)
+    oldDataset = trash_item.dataset.pk
     if not trash_item.datasetRecover:
         trash_item.datasetRecover = trash_item.dataset
-        oldDataset = trash_item.dataset.pk
         trash_item.dataset = trash_dataset
         trash_item.save()
+        build_vrt(oldDataset)
     response = dataset_list(request, oldDataset)
     return response
 
@@ -388,34 +394,11 @@ def recover_image(request, idx = None):
         recover_image.dataset = recover_image.datasetRecover
         recover_image.datasetRecover = None
         recover_image.save()
+        build_vrt(trash_item.recover_image.dataset)
         response = dataset_list(request, trash_dataset.pk)
         return response
 
-def build_vrt(datasetId):
-    dataset = datasets.objects.get(pk=datasetId)
-    dataset_imgs = rasterMaps.objects.filter(dataset=dataset)
-    #print ("build_vrt",dataset, file=sys.stderr)
-    vrt_files = ""
-    for img in dataset_imgs:
-        #print ("build_vrt",img, file=sys.stderr)
-        vrt_files += '"'+settings.MEDIA_ROOT + str(img.destinazione) + '" '
-    if vrt_files:
-        vrtFileName = os.path.join(settings.MEDIA_ROOT,'warp',dataset.name) + '.vrt'
-        buildVrtCmd = 'gdalbuildvrt -addalpha -hidenodata -overwrite "%s" %s' % (vrtFileName, vrt_files)
-        os.system(buildVrtCmd)
-        dataset.vrt = os.path.relpath(vrtFileName,settings.MEDIA_ROOT)
-    else:
-        vrtFileName = ''
-        dataset.vrt = None
-    dataset.save()
 
-    return vrtFileName
-    #coverage = GDALRaster(vrtFileName, write=False)
-    #dataset.coverage = GDALRaster(vrtFileName, write=False)
-    #dataset.save()
-    #print (buildVrtCmd, file=sys.stderr)
-    #print ("SIZE/SRID:", dataset.coverage.width, dataset.coverage.height,dataset.coverage.srs.srid, file=sys.stderr)
-    #os.system(buildVrtCmd)
 
 @login_required
 def download_dataset(request, datasetId):
@@ -542,27 +525,25 @@ def georef_print(request,idx):
 
 def warp_clipping_poligon(raster_id, metodo = "-tps"):
     rasterItem = rasterMaps.objects.get(pk=raster_id)
-    temp_dir = os.path.join(settings.MEDIA_ROOT,'warp','temp')
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
-    sorgenteTempFile = tempfile.NamedTemporaryFile(dir=temp_dir, delete=False, mode='w+b', suffix='.geojson')
-    destinazioneTempFile = tempfile.NamedTemporaryFile(dir=temp_dir, delete=False, mode='w+b', suffix='.geojson')
+    #temp_dir = os.path.join(settings.MEDIA_ROOT,'warp','temp')
+    #if not os.path.exists(temp_dir):
+    #    os.makedirs(temp_dir)
+    sorgenteTempFile = tempfile.NamedTemporaryFile(delete=False, mode='w+b', suffix='.geojson') #dir=temp_dir, 
+    destinazioneTempFile = tempfile.NamedTemporaryFile(delete=False, mode='w+b', suffix='.geojson') #dir=temp_dir, 
+    os.remove(destinazioneTempFile.name) #!?
+
     gcpStringClip = ""
-    print ("rasterItem.correlazione",rasterItem.correlazione)
     for gcp in json.loads(rasterItem.correlazione):
         gcpStringClip += "-gcp %s %s %s %s " % (gcp[0][0], gcp[0][1], gcp[1][0], gcp[1][1])
 
-    with open(sorgenteTempFile.name, 'wt') as out:
+    with open(sorgenteTempFile.name, 'w') as out:
         out.write(rasterItem.clipSorgente)
 
     ogr_clip_cmd = 'ogr2ogr -a_srs EPSG:%s -f "GeoJSON" %s %s "%s" "%s"' % (rasterItem.dataset.epsg, gcpStringClip, metodo, destinazioneTempFile.name, sorgenteTempFile.name)
     execute(ogr_clip_cmd)
 
-    with open(destinazioneTempFile.name, 'rt') as dest:
+    with open(destinazioneTempFile.name, 'r') as dest:
         clipping_polygon = dest.read()
-
-    os.remove(sorgenteTempFile.name)
-    os.remove(destinazioneTempFile.name)
 
     return clipping_polygon
 
@@ -608,8 +589,6 @@ def georef_apply(request):
             controlli_sorgente = json.loads(controlli_sorgente_string)
             controlli_destinazione = json.loads(controlli_destinazione_string)
 
-            print ("CONTROLLI",controlli_sorgente, controlli_destinazione, clip_poligono_string, file=sys.stderr) 
-
             features_sorgente = controlli_sorgente['features']
             features_destinazione = controlli_destinazione['features']
             num_controlli = len(features_sorgente)
@@ -627,23 +606,18 @@ def georef_apply(request):
                 indice = feature['properties']['indice'] - 1
                 correlazione[indice][1] = coordinate
 
+            georefItem.correlazione = json.dumps(correlazione)
+            georefItem.save()
+
             sorgenteFile = settings.MEDIA_ROOT + sorgenteImg
             tempFile = settings.MEDIA_ROOT + tempImg
             destinazioneFile = settings.MEDIA_ROOT + destinazioneImg
             openlayersFile = settings.MEDIA_ROOT + openlayersImg
-            sorgenteClipFile = settings.MEDIA_ROOT + sorgenteClip
+            #sorgenteClipFile = settings.MEDIA_ROOT + sorgenteClip
             destinazioneClipFile = settings.MEDIA_ROOT + destinazioneClip
 
             if os.path.isfile(tempFile):
                 os.remove(tempFile)
-
-            #print ("\n",sorgenteFile, file=sys.stderr)
-
-            if clip_poligono_string:
-                # scrivi file json con il poligono di clip
-                with open(sorgenteClipFile, 'wt') as out:
-                    out.write(clip_poligono_string)
-                gdal_clip_cmd = 'gdalwarp -cutline %s '
 
             gcpString = ""
             gcpStringClip = ""
@@ -654,16 +628,9 @@ def georef_apply(request):
 
             sorgenteRaster = GDALRaster(sorgenteFile, write=False)
             numero_bande = len(sorgenteRaster.bands)
-            #if numero_bande == 1:
-            #    bande = '-b 1' #genera errore Band 2 requested, but only bands 1 to 1 available.
-            #elif numero_bande == 2:
-            #    bande = '-b 1 -b 2'
-            #elif numero_bande >= 3:
-            #    bande = '-b 1 -b 2 -b 3'
 
             if numero_bande >= 3:
                 bande = '-b 1 -b 2 -b 3'
-
             else:
                 bande = ''
 
@@ -678,27 +645,13 @@ def georef_apply(request):
             #metodo = "-order 2"
 
             if clip_poligono_string:
-                '''
-                # scrivi file json con il poligono di clip
-                with open(sorgenteClipFile, 'wt') as out:
-                    out.write(clip_poligono_string)
-                try:
-                    os.remove(destinazioneClipFile)
-                except:
-                    pass
-                ogr_clip_cmd = 'ogr2ogr -a_srs EPSG:%s -f "GeoJSON" %s %s "%s" "%s"' % (georefItem.dataset.epsg, gcpStringClip, metodo, destinazioneClipFile, sorgenteClipFile)
-                execute(ogr_clip_cmd)
-                #post_gdal_warp = 'gdalwarp -r cubic -co COMPRESS=JPEG -co JPEG_QUALITY=75 -overwrite -cutline "%s" -crop_to_cutline "%s" "%s"' % (destinazioneClipFile, destinazioneFile, logCmdFilename)
-                '''
-
+                georefItem.clipSorgente = clip_poligono_string
+                georefItem.save()
                 destinazioneClip = warp_clipping_poligon(id)
-
                 with open(destinazioneClipFile, 'wt') as out:
                     out.write(destinazioneClip)
-
                 clString = '-cutline "%s" -crop_to_cutline' % destinazioneClipFile
             else:
-                #post_gdal_warp = None
                 clString = ''
 
             if alpha:
@@ -747,7 +700,6 @@ def georef_apply(request):
                     georefItem.save()
                 else:
                     clipjson = ''
-
 
                 risposta = {
                         'valida': True,

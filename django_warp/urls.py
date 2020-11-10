@@ -11,6 +11,7 @@ urlpatterns = [
     url(r'^(\d+)/$', views.dataset_list, name='dataset_list'),
     url(r'^newdataset/$', views.dataset_form, name='dataset_new'),
     url(r'^removedataset/(\d+)/$', views.remove_dataset, name='dataset_remove'),
+    url(r'^force_delete/(\d+)/$', views.force_raster_delete, name='force_raster_delete'),
     url(r'^updateimage/$', views.update_image, name='dataset_remove'),
     url(r'^emptytrash/$', views.empty_trash, name='empty_trash'),
     url(r'^vrtdataset/(\d+)/$', views.vrt_dataset, name='dataset_vrt'),
@@ -27,8 +28,8 @@ urlpatterns = [
     url(r'^proxy/(?P<url>.*)', HttpProxy.as_view(base_url="")),
     url(r'^export/$', views.export, name='export'),
     #url(r'^proxy/(?P<path>.*)', ProxyView.as_view(upstream='https://')),
-    url(r'^login/', django.contrib.auth.views.login),
-    url(r'^logout/', django.contrib.auth.views.logout),
+    url(r'^login/', django.contrib.auth.views.LoginView),
+    url(r'^logout/', django.contrib.auth.views.LogoutView),
     #url(r'raster/', include('raster.urls')),
     #url(r'^wms/$', testWmsView.as_view(), name='wms'),
 ]

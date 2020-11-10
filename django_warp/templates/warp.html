@@ -811,7 +811,7 @@ function init(){
         title:  '{% trans "clipping polygon "%}',
         style: new ol.style.Style({
           fill: new ol.style.Fill({
-            color: 'rgba(255, 255, 255, 0.2)'
+            color: 'rgba(255, 255, 255, 0)'
           }),
           stroke: new ol.style.Stroke({
             color: '#ffcc33',
@@ -832,6 +832,7 @@ function init(){
     georef_overlay =
           new ol.layer.Image({
             title: '{% trans "georeferenced image" %}',
+            opacity: 0.7,
 {% if source.target %}
             source: new ol.source.ImageStatic({
               url: '{{source.target}}',
@@ -867,7 +868,7 @@ function init(){
 {% for ds in source.datasets %}
       {% if ds.name != '__TRASH'%}
           new ol.layer.Image({
-                title: '{% blocktrans %}dataset {{ ds.name }} coverage {% endblocktrans %}',
+                title: 'dataset {{ ds.slug }}{% blocktrans %} {% endblocktrans %}',
                 visible:false,
                 source: new ol.source.ImageWMS({
                   url: '/warp/export',
@@ -927,10 +928,10 @@ function init(){
 {% block titolo %}{{ dataset.epsg }}{% trans "Georeferencing" %} {% if source %}{{source.attribution}}{% endif %}{% endblock %}
 {% block menu %}
 <li>
-<a id="dataset_detail_link" href="/warp/{{ dataset }}">{% trans dataset {{ source.dataset.name }} detail %}</a>
+<a id="dataset_detail_link" href="/warp/{{ dataset }}">{% blocktrans %}  dataset {{ source.dataset.name }} detail {% endblocktrans %}</a>
 </li>
 <li>
-<a id="dataset_detail_overview"  href="/warp/viewdataset/{{ dataset }}">{% trans dataset {{ source.dataset.name }} overview %}</a>
+<a id="dataset_detail_overview"  href="/warp/viewdataset/{{ dataset }}">{% blocktrans %} dataset {{ source.dataset.name }} overview {% endblocktrans %}</a>
 </li>
 {% endblock %}
 {% block contenuto %}
@@ -939,15 +940,15 @@ function init(){
 {% if not source %}
 <div id="master" class="container fill">
     <div class="row-fluid fill">
-            {% if errore %}<div class="alert alert-warning"><strong>{% trans ERROR: %}</strong>{{errore}}</div>{% endif %}
+            {% if errore %}<div class="alert alert-warning"><strong>{% trans "ERROR:" %}</strong>{{errore}}</div>{% endif %}
             <form id="fase1" role="form" action="/warp/newimage/{{ dataset }}/" method="post"  enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="titolo">{% trans Image name %}</label>
+                    <label for="titolo">{% trans "Image name" %}</label>
                     {{form.titolo}}
-                    <label for="note">{% trans Notes %}</label>
+                    <label for="note">{% trans "Notes" %}</label>
                     {{form.note}}
-                    <label for="sorgente">{% trans Source image file %}</label><br/>
+                    <label for="sorgente">{% trans "Source image file" %}</label><br/>
                     <span class="btn btn-default btn-file">
                         {{form.sorgente}}
                     </span>

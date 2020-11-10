@@ -1,4 +1,4 @@
-Django>=1.11
+Django
 amqp
 billiard
 boto3
@@ -10,7 +10,8 @@ django-appconf
 django-apps
 django-colorful
 django-cors-headers
-django-http-proxy
+#django-http-proxy
+git+https://github.com/PetrDlouhy/django-http-proxy.git
 django-imagekit
 #django-raster
 django-wms
@@ -24,10 +25,10 @@ Pillow
 psycopg2
 #pygdal
 #https://gis.stackexchange.com/questions/28966/python-gdal-package-missing-header-file-when-installing-via-pip
-GDAL==2.1.0
+GDAL==2.4.4
 pyparsing
 python-dateutil
-python-slugify
+python-slugify==3.0.6
 pytz
 requests
 s3transfer

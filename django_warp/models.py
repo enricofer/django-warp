@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.contrib.gis.db import models
 from slugify import slugify
 from imagekit.models import ImageSpecField
@@ -37,8 +38,8 @@ class rasterMaps(models.Model):
     titolo = models.CharField(max_length=50)
     slug = models.CharField(max_length=50,blank=True)
     note = models.TextField(blank=True)
-    dataset = models.ForeignKey('datasets',blank=True,null=True,related_name="current_dataset",on_delete="PROTECT") #
-    datasetRecover = models.ForeignKey('datasets',blank=True,null=True,related_name="recover_dataset",on_delete="PROTECT") #
+    dataset = models.ForeignKey('datasets',blank=True,null=True,related_name="current_dataset", on_delete=models.PROTECT) #
+    datasetRecover = models.ForeignKey('datasets',blank=True,null=True,related_name="recover_dataset", on_delete=models.PROTECT) #
     sorgente = models.ImageField(upload_to='warp/', validators=[validate_file_extension])
     sorgente_thumbnail = ImageSpecField(source='sorgente',
                                       processors=[ResizeToFill(120, 120)],
@@ -83,6 +84,7 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
 
         if os.path.isfile(instance.destinazione.path):
             os.remove(instance.destinazione.path)
+            build_vrt(instance.dataset.pk)
 
         if os.path.isfile(destinazione_base + ".geojson"):
             os.remove(destinazione_base + ".geojson")
@@ -95,3 +97,21 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
 
         if os.path.isfile(webimg_base + ".wld"):
             os.remove(webimg_base + ".wld")
+
+def build_vrt(datasetId):
+    dataset = datasets.objects.get(pk=datasetId)
+    dataset_imgs = rasterMaps.objects.filter(dataset=dataset).order_by('pk')
+    vrt_files = ""
+    for img in dataset_imgs:
+        vrt_files += '"'+settings.MEDIA_ROOT + str(img.destinazione) + '" '
+    if vrt_files:
+        vrtFileName = os.path.join(settings.MEDIA_ROOT,'warp',dataset.name) + '.vrt'
+        buildVrtCmd = 'gdalbuildvrt -addalpha -hidenodata -overwrite "%s" %s' % (vrtFileName, vrt_files)
+        #print("buildVrtCmd",buildVrtCmd)
+        os.system(buildVrtCmd)
+        dataset.vrt = os.path.relpath(vrtFileName,settings.MEDIA_ROOT)
+    else:
+        vrtFileName = ''
+        dataset.vrt = None
+    dataset.save()
+    return vrtFileName
