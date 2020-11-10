@@ -23,7 +23,7 @@ setup(
         'django-http-proxy',
         'python-slugify',
         'django-imagekit',
-        'django-raster>=0.6',
+        #'django-raster>=0.6',
         'requests',
         'GDAL>=2.1.0'
     ],

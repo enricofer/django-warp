@@ -627,9 +627,6 @@ def georef_apply(request):
                 indice = feature['properties']['indice'] - 1
                 correlazione[indice][1] = coordinate
 
-            georefItem.correlazione = json.dumps(correlazione)
-            georefItem.save()
-
             sorgenteFile = settings.MEDIA_ROOT + sorgenteImg
             tempFile = settings.MEDIA_ROOT + tempImg
             destinazioneFile = settings.MEDIA_ROOT + destinazioneImg
@@ -693,9 +690,6 @@ def georef_apply(request):
                 execute(ogr_clip_cmd)
                 #post_gdal_warp = 'gdalwarp -r cubic -co COMPRESS=JPEG -co JPEG_QUALITY=75 -overwrite -cutline "%s" -crop_to_cutline "%s" "%s"' % (destinazioneClipFile, destinazioneFile, logCmdFilename)
                 '''
-                
-                georefItem.clipSorgente = clip_poligono_string
-                georefItem.save()
 
                 destinazioneClip = warp_clipping_poligon(id)
 

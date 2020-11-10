@@ -927,10 +927,10 @@ function init(){
 {% block titolo %}{{ dataset.epsg }}{% trans "Georeferencing" %} {% if source %}{{source.attribution}}{% endif %}{% endblock %}
 {% block menu %}
 <li>
-<a id="dataset_detail_link" href="/warp/{{ dataset }}">{% blocktrans %}  dataset {{ source.dataset.name }} detail {% endblocktrans %}</a>
+<a id="dataset_detail_link" href="/warp/{{ dataset }}">{% trans dataset {{ source.dataset.name }} detail %}</a>
 </li>
 <li>
-<a id="dataset_detail_overview"  href="/warp/viewdataset/{{ dataset }}">{% blocktrans %} dataset {{ source.dataset.name }} overview {% endblocktrans %}</a>
+<a id="dataset_detail_overview"  href="/warp/viewdataset/{{ dataset }}">{% trans dataset {{ source.dataset.name }} overview %}</a>
 </li>
 {% endblock %}
 {% block contenuto %}
@@ -939,15 +939,15 @@ function init(){
 {% if not source %}
 <div id="master" class="container fill">
     <div class="row-fluid fill">
-            {% if errore %}<div class="alert alert-warning"><strong>{% trans "ERROR:" %}</strong>{{errore}}</div>{% endif %}
+            {% if errore %}<div class="alert alert-warning"><strong>{% trans ERROR: %}</strong>{{errore}}</div>{% endif %}
             <form id="fase1" role="form" action="/warp/newimage/{{ dataset }}/" method="post"  enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="titolo">{% trans "Image name" %}</label>
+                    <label for="titolo">{% trans Image name %}</label>
                     {{form.titolo}}
-                    <label for="note">{% trans "Notes" %}</label>
+                    <label for="note">{% trans Notes %}</label>
                     {{form.note}}
-                    <label for="sorgente">{% trans "Source image file" %}</label><br/>
+                    <label for="sorgente">{% trans Source image file %}</label><br/>
                     <span class="btn btn-default btn-file">
                         {{form.sorgente}}
                     </span>
