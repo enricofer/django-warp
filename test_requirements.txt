@@ -21,7 +21,7 @@ GDAL==2.1.0
 idna==2.8
 jmespath==0.9.3
 kombu==4.1.0
-numpy==1.15.4
+numpy==1.22.0
 packaging==18.0
 pilkit==2.0
 Pillow==5.3.0
